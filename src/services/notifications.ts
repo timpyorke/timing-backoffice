@@ -122,7 +122,7 @@ class NotificationService {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ fcm_token: token }),
       });
 
       if (!response.ok) {
