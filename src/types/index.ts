@@ -1,4 +1,6 @@
 export interface Order {
+  order: any;
+  data: any;
   id: string;
   customer_info: {
     name: string;

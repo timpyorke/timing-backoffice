@@ -54,15 +54,15 @@ const Sales: React.FC = () => {
       ['Metric', 'Value'],
       ['Date', salesData.date],
       ['Total Orders', salesData.totalOrders.toString()],
-      ['Total Revenue', `$${salesData.totalRevenue.toFixed(2)}`],
-      ['Average Order Value', `$${salesData.averageOrderValue.toFixed(2)}`],
+      ['Total Revenue', `฿${Number(salesData.totalRevenue || 0).toFixed(2)}`],
+      ['Average Order Value', `฿${Number(salesData.averageOrderValue || 0).toFixed(2)}`],
       [''],
       ['Top Items', ''],
       ['Item Name', 'Quantity Sold', 'Revenue'],
-      ...salesData.topItems.map(item => [
+      ...(salesData.topItems || []).map(item => [
         item.name,
         item.quantity.toString(),
-        `$${item.revenue.toFixed(2)}`
+        `฿${Number(item.revenue || 0).toFixed(2)}`
       ])
     ];
 
@@ -146,7 +146,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">${salesData.totalRevenue.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{Number(salesData.totalRevenue || 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -158,7 +158,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-gray-900">${salesData.averageOrderValue.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{Number(salesData.averageOrderValue || 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -171,7 +171,7 @@ const Sales: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Date</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {new Date(salesData.date).toLocaleDateString()}
+                    {salesData.date ? (isNaN(new Date(salesData.date).getTime()) ? 'N/A' : new Date(salesData.date).toLocaleDateString('th-TH')) : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -182,9 +182,9 @@ const Sales: React.FC = () => {
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Selling Items</h2>
             
-            {salesData.topItems.length > 0 ? (
+            {salesData.topItems && salesData.topItems.length > 0 ? (
               <div className="space-y-4">
-                {salesData.topItems.map((item, index) => (
+                {(salesData.topItems || []).map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
@@ -201,7 +201,7 @@ const Sales: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        ${item.revenue.toFixed(2)}
+                        ฿{Number(item.revenue || 0).toFixed(2)}
                       </p>
                       <p className="text-xs text-gray-500">revenue</p>
                     </div>
@@ -228,7 +228,7 @@ const Sales: React.FC = () => {
                   <span className="text-sm text-gray-600">Items per order (avg)</span>
                   <span className="text-sm font-medium text-gray-900">
                     {salesData.totalOrders > 0 
-                      ? (salesData.topItems.reduce((sum, item) => sum + item.quantity, 0) / salesData.totalOrders).toFixed(1)
+                      ? ((salesData.topItems || []).reduce((sum, item) => sum + (item.quantity || 0), 0) / salesData.totalOrders).toFixed(1)
                       : '0'
                     }
                   </span>
@@ -237,15 +237,15 @@ const Sales: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Best selling item</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {salesData.topItems.length > 0 ? salesData.topItems[0].name : 'N/A'}
+                    {salesData.topItems && salesData.topItems.length > 0 ? salesData.topItems[0].name : 'N/A'}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Highest revenue item</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {salesData.topItems.length > 0 
-                      ? salesData.topItems.reduce((max, item) => item.revenue > max.revenue ? item : max, salesData.topItems[0]).name
+                    {salesData.topItems && salesData.topItems.length > 0 
+                      ? salesData.topItems.reduce((max, item) => (item.revenue || 0) > (max.revenue || 0) ? item : max, salesData.topItems[0]).name
                       : 'N/A'
                     }
                   </span>
@@ -260,7 +260,7 @@ const Sales: React.FC = () => {
                   <span className="text-sm text-gray-600">Revenue vs Target</span>
                   <span className="text-sm font-medium text-gray-900">
                     {/* Assuming a daily target of $500 */}
-                    {((salesData.totalRevenue / 500) * 100).toFixed(0)}%
+                    {((Number(salesData.totalRevenue || 0) / 500) * 100).toFixed(0)}%
                   </span>
                 </div>
                 
@@ -268,14 +268,14 @@ const Sales: React.FC = () => {
                   <span className="text-sm text-gray-600">Orders vs Target</span>
                   <span className="text-sm font-medium text-gray-900">
                     {/* Assuming a daily target of 50 orders */}
-                    {((salesData.totalOrders / 50) * 100).toFixed(0)}%
+                    {((Number(salesData.totalOrders || 0) / 50) * 100).toFixed(0)}%
                   </span>
                 </div>
                 
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
                   <div 
                     className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, (salesData.totalRevenue / 500) * 100)}%` }}
+                    style={{ width: `${Math.min(100, (Number(salesData.totalRevenue || 0) / 500) * 100)}%` }}
                   ></div>
                 </div>
                 <p className="text-xs text-gray-500 text-center">Daily revenue progress</p>

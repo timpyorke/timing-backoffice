@@ -26,7 +26,28 @@ const Menu: React.FC = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const items = await apiService.getMenuItems();
+      const response = await apiService.getMenuItems();
+      console.log('API Response:', response); // Debug log
+      
+      // Handle different response structures
+      let items: MenuItem[] = [];
+      if (Array.isArray(response)) {
+        items = response;
+      } else if (response && typeof response === 'object') {
+        const responseObj = response as any;
+        if (Array.isArray(responseObj.data)) {
+          items = responseObj.data;
+        } else if (responseObj.items && Array.isArray(responseObj.items)) {
+          items = responseObj.items;
+        } else {
+          console.warn('Unexpected response structure:', response);
+          items = [];
+        }
+      } else {
+        console.warn('Unexpected response type:', typeof response);
+        items = [];
+      }
+      
       setMenuItems(items);
       setApiError(false);
     } catch (error) {
@@ -73,12 +94,12 @@ const Menu: React.FC = () => {
     try {
       const updatedItem = await apiService.updateMenuItem(item.id, {
         ...item,
-        available: !item.available
+        active: !item.active
       });
       setMenuItems(prev => 
         prev.map(i => i.id === item.id ? updatedItem : i)
       );
-      toast.success(`${item.name} is now ${!item.available ? 'available' : 'unavailable'}`);
+      toast.success(`${item.name} is now ${!item.active ? 'available' : 'unavailable'}`);
     } catch (error) {
       console.error('Failed to update menu item:', error);
       toast.error('Failed to update availability');
@@ -106,18 +127,18 @@ const Menu: React.FC = () => {
     }
   };
 
-  const categories = [...new Set(menuItems.map(item => item.category))];
+  const categories = Array.isArray(menuItems) ? [...new Set(menuItems.map(item => item.category).filter(category => category))] : [];
 
-  const filteredItems = menuItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredItems = Array.isArray(menuItems) ? menuItems.filter(item => {
+    const matchesSearch = (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
     const matchesAvailability = availabilityFilter === 'all' || 
-                               (availabilityFilter === 'available' && item.available) ||
-                               (availabilityFilter === 'unavailable' && !item.available);
+                               (availabilityFilter === 'available' && item.active) ||
+                               (availabilityFilter === 'unavailable' && !item.active);
     
     return matchesSearch && matchesCategory && matchesAvailability;
-  });
+  }) : [];
 
   if (loading) {
     return (
@@ -204,7 +225,7 @@ const Menu: React.FC = () => {
               )}
               
               {/* Availability overlay */}
-              {!item.available && (
+              {!item.active && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                   <span className="text-white font-semibold">UNAVAILABLE</span>
                 </div>
@@ -216,20 +237,22 @@ const Menu: React.FC = () => {
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900 text-lg">{item.name}</h3>
                 <span className="text-lg font-bold text-primary-600">
-                  ${item.price.toFixed(2)}
+                  ฿{Number(item.base_price).toFixed(2)}
                 </span>
               </div>
               
-              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                {item.description}
-              </p>
+              {item.description && (
+                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                  {item.description}
+                </p>
+              )}
               
               <div className="flex items-center justify-between mb-4">
                 <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
                   {item.category}
                 </span>
                 <div className="flex items-center space-x-1">
-                  {item.available ? (
+                  {item.active ? (
                     <>
                       <Eye className="h-4 w-4 text-green-500" />
                       <span className="text-xs text-green-600">Available</span>
@@ -244,17 +267,19 @@ const Menu: React.FC = () => {
               </div>
 
               {/* Customizations */}
-              {item.customizations.length > 0 && (
+              {item.customizations && Object.keys(item.customizations).length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 mb-1">Customizations:</p>
                   <div className="flex flex-wrap gap-1">
-                    {item.customizations.map((custom) => (
-                      <span
-                        key={custom.id}
-                        className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded"
-                      >
-                        {custom.name}
-                      </span>
+                    {Object.entries(item.customizations).map(([key, values]) => (
+                      values && values.length > 0 && (
+                        <span
+                          key={key}
+                          className="inline-block bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded"
+                        >
+                          {key}: {values.join(', ')}
+                        </span>
+                      )
                     ))}
                   </div>
                 </div>
@@ -265,12 +290,12 @@ const Menu: React.FC = () => {
                 <button
                   onClick={() => handleToggleAvailability(item)}
                   className={`flex-1 btn ${
-                    item.available 
+                    item.active 
                       ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                       : 'bg-green-100 text-green-700 hover:bg-green-200'
                   }`}
                 >
-                  {item.available ? (
+                  {item.active ? (
                     <>
                       <EyeOff className="h-4 w-4 mr-1" />
                       Hide

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   ArrowLeft, 
   Clock, 
@@ -18,27 +19,64 @@ import { toast } from 'sonner';
 const OrderDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { language, t } = useLanguage();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  const formatDate = (dateInput: any): string => {
+    if (!dateInput) return t('common.na');
+    const date = new Date(dateInput);
+    const locale = language === 'th' ? 'th-TH' : 'en-US';
+    return isNaN(date.getTime()) ? t('common.na') : date.toLocaleString(locale);
+  };
+
+  const formatDateOnly = (dateInput: any): string => {
+    if (!dateInput) return t('common.na');
+    const date = new Date(dateInput);
+    const locale = language === 'th' ? 'th-TH' : 'en-US';
+    return isNaN(date.getTime()) ? t('common.na') : date.toLocaleDateString(locale);
+  };
+
+  const formatTimeOnly = (dateInput: any): string => {
+    if (!dateInput) return t('common.na');
+    const date = new Date(dateInput);
+    const locale = language === 'th' ? 'th-TH' : 'en-US';
+    return isNaN(date.getTime()) ? t('common.na') : date.toLocaleTimeString(locale);
+  };
+
+  const formatCurrency = (amount: any): string => {
+    const num = Number(amount || 0);
+    return `฿${num.toFixed(2)}`;
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
       if (!id) return;
       
       try {
-        const orders = await apiService.getOrders();
-        const foundOrder = orders.find(o => o.id === id);
-        if (foundOrder) {
-          setOrder(foundOrder);
+        const response = await apiService.getOrder(id);
+        console.log('Order API Response:', response); // Debug log
+        
+        // Handle different response structures
+        let fetchedOrder: Order;
+        if (response && typeof response === 'object') {
+          if (response.data) {
+            fetchedOrder = response.data;
+          } else if (response.order) {
+            fetchedOrder = response.order;
+          } else {
+            fetchedOrder = response as Order;
+          }
         } else {
-          toast.error('Order not found');
-          navigate('/');
+          throw new Error('Invalid response structure');
         }
+        
+        setOrder(fetchedOrder);
       } catch (error) {
         console.error('Failed to fetch order:', error);
         toast.error('Failed to load order details');
-        navigate('/');
+        navigate('/orders');
       } finally {
         setLoading(false);
       }
@@ -87,29 +125,29 @@ const OrderDetails: React.FC = () => {
       <body>
         <div class="header">
           <h2>Timing Coffee Shop</h2>
-          <h3>Order #${order.id.slice(-6)}</h3>
+          <h3>Order #${String(order.id).slice(-6)}</h3>
         </div>
         
         <div class="order-info">
-          <p><strong>Customer:</strong> ${order.customerName}</p>
-          ${order.customerPhone ? `<p><strong>Phone:</strong> ${order.customerPhone}</p>` : ''}
+          <p><strong>Customer:</strong> ${order.customer_info?.name || 'N/A'}</p>
+          ${order.customer_info?.phone ? `<p><strong>Phone:</strong> ${order.customer_info.phone}</p>` : ''}
+          ${order.customer_info?.email ? `<p><strong>Email:</strong> ${order.customer_info.email}</p>` : ''}
           <p><strong>Status:</strong> ${order.status.toUpperCase()}</p>
-          <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+          <p><strong>Date:</strong> ${order.createdAt ? (isNaN(new Date(order.createdAt).getTime()) ? 'N/A' : new Date(order.createdAt).toLocaleString()) : 'N/A'}</p>
         </div>
         
         <div class="items">
           <h4>Items:</h4>
-          ${order.items.map(item => `
+          ${(order.items || []).map((item) => `
             <div class="item">
-              <span>${item.quantity}x ${item.name}</span>
-              <span>$${(item.price * item.quantity).toFixed(2)}</span>
+              <span>${item.quantity}x Beverage #${item.beverage_id}</span>
+              <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
-            ${item.customizations.length > 0 ? 
-              item.customizations.map(custom => 
-                `<div style="margin-left: 20px; font-size: 12px; color: #666;">
-                  ${custom.name}: ${custom.value}
-                  ${custom.additionalPrice > 0 ? ` (+$${custom.additionalPrice.toFixed(2)})` : ''}
-                </div>`
+            ${item.customizations && Object.keys(item.customizations).length > 0 ? 
+              Object.entries(item.customizations).map(([key, values]) => 
+                values && values.length > 0 ? `<div style="margin-left: 20px; font-size: 12px; color: #666;">
+                  ${key}: ${Array.isArray(values) ? values.join(', ') : values}
+                </div>` : ''
               ).join('') : ''
             }
           `).join('')}
@@ -125,13 +163,13 @@ const OrderDetails: React.FC = () => {
         <div class="total">
           <div class="item">
             <span>Total Amount:</span>
-            <span>$${order.totalAmount.toFixed(2)}</span>
+            <span>฿${Number(order.total).toFixed(2)}</span>
           </div>
         </div>
         
         <div class="footer">
           <p>Thank you for your business!</p>
-          <p>Printed: ${new Date().toLocaleString()}</p>
+          <p>Printed: ${new Date().toLocaleString('th-TH')}</p>
         </div>
       </body>
       </html>
@@ -145,7 +183,7 @@ const OrderDetails: React.FC = () => {
 
   const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
-      case 'received': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'preparing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -155,7 +193,7 @@ const OrderDetails: React.FC = () => {
 
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
-      case 'received': return <AlertCircle className="h-5 w-5" />;
+      case 'pending': return <AlertCircle className="h-5 w-5" />;
       case 'preparing': return <Clock className="h-5 w-5" />;
       case 'ready': return <CheckCircle className="h-5 w-5" />;
       case 'completed': return <CheckCircle className="h-5 w-5" />;
@@ -165,7 +203,7 @@ const OrderDetails: React.FC = () => {
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
     switch (currentStatus) {
-      case 'received': return 'preparing';
+      case 'pending': return 'preparing';
       case 'preparing': return 'ready';
       case 'ready': return 'completed';
       default: return null;
@@ -174,10 +212,19 @@ const OrderDetails: React.FC = () => {
 
   const getStatusAction = (status: OrderStatus): string => {
     switch (status) {
-      case 'received': return 'Start Preparing';
+      case 'pending': return 'Start Preparing';
       case 'preparing': return 'Mark Ready';
       case 'ready': return 'Complete Order';
       default: return '';
+    }
+  };
+
+  const getStatusButtonColor = (status: OrderStatus): string => {
+    switch (status) {
+      case 'pending': return 'bg-blue-600 hover:bg-blue-700 text-white';
+      case 'preparing': return 'bg-yellow-600 hover:bg-yellow-700 text-white';
+      case 'ready': return 'bg-green-600 hover:bg-green-700 text-white';
+      default: return 'bg-gray-600 hover:bg-gray-700 text-white';
     }
   };
 
@@ -199,13 +246,13 @@ const OrderDetails: React.FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/orders')}
             className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-2xl font-bold text-gray-900">
-            Order #{order.id.slice(-6)}
+            Order #{String(order.id).slice(-6)}
           </h1>
         </div>
         <button
@@ -232,11 +279,11 @@ const OrderDetails: React.FC = () => {
             
             {/* Status Timeline */}
             <div className="space-y-3">
-              <div className={`flex items-center ${order.status === 'received' || order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${order.status === 'pending' || order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle className="h-4 w-4 mr-3" />
                 <span className="text-sm">Order Received</span>
                 <span className="ml-auto text-xs text-gray-500">
-                  {new Date(order.createdAt).toLocaleString()}
+                  {formatDate(order.createdAt)}
                 </span>
               </div>
               <div className={`flex items-center ${order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
@@ -258,7 +305,7 @@ const OrderDetails: React.FC = () => {
                 <button
                   onClick={() => updateOrderStatus(getNextStatus(order.status)!)}
                   disabled={updating}
-                  className="btn-primary w-full disabled:opacity-50"
+                  className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(order.status)}`}
                 >
                   {updating ? 'Updating...' : getStatusAction(order.status)}
                 </button>
@@ -271,29 +318,28 @@ const OrderDetails: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
             
             <div className="space-y-4">
-              {order.items.map((item) => (
-                <div key={item.id} className="border-b border-gray-200 pb-4 last:border-b-0">
+              {(order.items || []).map((item, index) => (
+                <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">
-                        {item.quantity}x {item.name}
+                        {item.quantity}x Beverage #{item.beverage_id}
                       </h3>
-                      {item.customizations.length > 0 && (
+                      {item.customizations && Object.keys(item.customizations).length > 0 && (
                         <div className="mt-1 space-y-1">
-                          {item.customizations.map((custom) => (
-                            <p key={custom.id} className="text-sm text-gray-600">
-                              {custom.name}: {custom.value}
-                              {custom.additionalPrice > 0 && (
-                                <span className="text-green-600"> (+${custom.additionalPrice.toFixed(2)})</span>
-                              )}
-                            </p>
+                          {Object.entries(item.customizations).map(([key, values]) => (
+                            values && values.length > 0 && (
+                              <p key={key} className="text-sm text-gray-600">
+                                {key}: {Array.isArray(values) ? values.join(', ') : values}
+                              </p>
+                            )
                           ))}
                         </div>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
+                      <p className="font-medium text-gray-900">฿{(Number(item.price) * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">฿{Number(item.price).toFixed(2)} each</p>
                     </div>
                   </div>
                 </div>
@@ -303,7 +349,7 @@ const OrderDetails: React.FC = () => {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-900">Total Amount</span>
-                <span className="text-lg font-bold text-gray-900">${order.totalAmount.toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-900">฿{Number(order.total).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -325,17 +371,29 @@ const OrderDetails: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center">
                 <User className="h-4 w-4 text-gray-400 mr-3" />
-                <span className="text-gray-900">{order.customerName}</span>
+                <span className="text-gray-900">{order.customer_info?.name || 'N/A'}</span>
               </div>
               
-              {order.customerPhone && (
+              {order.customer_info?.phone && (
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 text-gray-400 mr-3" />
                   <a 
-                    href={`tel:${order.customerPhone}`}
+                    href={`tel:${order.customer_info.phone}`}
                     className="text-primary-600 hover:text-primary-800 underline"
                   >
-                    {order.customerPhone}
+                    {order.customer_info.phone}
+                  </a>
+                </div>
+              )}
+              
+              {order.customer_info?.email && (
+                <div className="flex items-center">
+                  <User className="h-4 w-4 text-gray-400 mr-3" />
+                  <a 
+                    href={`mailto:${order.customer_info.email}`}
+                    className="text-primary-600 hover:text-primary-800 underline"
+                  >
+                    {order.customer_info.email}
                   </a>
                 </div>
               )}
@@ -350,7 +408,7 @@ const OrderDetails: React.FC = () => {
                 <Calendar className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
                   <p className="text-sm text-gray-900">Order Date</p>
-                  <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-500">{formatDateOnly(order.createdAt)}</p>
                 </div>
               </div>
               
@@ -358,7 +416,7 @@ const OrderDetails: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
                   <p className="text-sm text-gray-900">Order Time</p>
-                  <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
+                  <p className="text-sm text-gray-500">{formatTimeOnly(order.createdAt)}</p>
                 </div>
               </div>
               

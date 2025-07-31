@@ -24,7 +24,30 @@ const Orders: React.FC = () => {
   const fetchOrders = async () => {
     try {
       const filters = statusFilter !== 'all' ? { status: statusFilter } : {};
-      const fetchedOrders = await apiService.getOrders(filters);
+      const response = await apiService.getOrders(filters);
+      console.log('Orders API Response:', response); // Debug log
+      
+      // Handle different response structures
+      let fetchedOrders: Order[] = [];
+      if (Array.isArray(response)) {
+        fetchedOrders = response;
+      } else if (response && typeof response === 'object') {
+        const responseObj = response as any;
+        if (Array.isArray(responseObj.data)) {
+          fetchedOrders = responseObj.data;
+        } else if (responseObj.orders && Array.isArray(responseObj.orders)) {
+          fetchedOrders = responseObj.orders;
+        } else if (responseObj.items && Array.isArray(responseObj.items)) {
+          fetchedOrders = responseObj.items;
+        } else {
+          console.warn('Unexpected orders response structure:', response);
+          fetchedOrders = [];
+        }
+      } else {
+        console.warn('Unexpected orders response type:', typeof response);
+        fetchedOrders = [];
+      }
+      
       setOrders(fetchedOrders);
       setApiError(false);
     } catch (error) {
@@ -54,11 +77,11 @@ const Orders: React.FC = () => {
     try {
       await apiService.updateOrderStatus(orderId, newStatus);
       setOrders(prev => 
-        prev.map(order => 
+        Array.isArray(prev) ? prev.map(order => 
           order.id === orderId 
             ? { ...order, status: newStatus, updatedAt: new Date() }
             : order
-        )
+        ) : []
       );
       toast.success(`Order status updated to ${newStatus}`);
     } catch (error) {
@@ -69,27 +92,29 @@ const Orders: React.FC = () => {
 
   const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
-      case 'received': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-blue-100 text-blue-800';
       case 'preparing': return 'bg-yellow-100 text-yellow-800';
       case 'ready': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
-      case 'received': return <AlertCircle className="h-4 w-4" />;
+      case 'pending': return <AlertCircle className="h-4 w-4" />;
       case 'preparing': return <Clock className="h-4 w-4" />;
       case 'ready': return <CheckCircle className="h-4 w-4" />;
       case 'completed': return <CheckCircle className="h-4 w-4" />;
+      case 'cancelled': return <AlertCircle className="h-4 w-4" />;
       default: return <AlertCircle className="h-4 w-4" />;
     }
   };
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
     switch (currentStatus) {
-      case 'received': return 'preparing';
+      case 'pending': return 'preparing';
       case 'preparing': return 'ready';
       case 'ready': return 'completed';
       default: return null;
@@ -98,23 +123,32 @@ const Orders: React.FC = () => {
 
   const getStatusAction = (status: OrderStatus): string => {
     switch (status) {
-      case 'received': return 'Start Preparing';
+      case 'pending': return 'Start Preparing';
       case 'preparing': return 'Mark Ready';
       case 'ready': return 'Complete Order';
       default: return '';
     }
   };
 
-  const filteredOrders = orders.filter(order => {
+  const getStatusButtonColor = (status: OrderStatus): string => {
+    switch (status) {
+      case 'pending': return 'bg-blue-600 hover:bg-blue-700 text-white';
+      case 'preparing': return 'bg-yellow-600 hover:bg-yellow-700 text-white';
+      case 'ready': return 'bg-green-600 hover:bg-green-700 text-white';
+      default: return 'bg-gray-600 hover:bg-gray-700 text-white';
+    }
+  };
+
+  const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     if (statusFilter === 'all') return true;
     return order.status === statusFilter;
-  });
+  }) : [];
 
   const ordersByStatus = {
-    received: filteredOrders.filter(o => o.status === 'received'),
-    preparing: filteredOrders.filter(o => o.status === 'preparing'),
-    ready: filteredOrders.filter(o => o.status === 'ready'),
-    completed: filteredOrders.filter(o => o.status === 'completed'),
+    received: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'pending') : [],
+    preparing: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'preparing') : [],
+    ready: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'ready') : [],
+    completed: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'completed') : [],
   };
 
   if (loading) {
@@ -139,7 +173,7 @@ const Orders: React.FC = () => {
               className="input py-1"
             >
               <option value="all">All Orders</option>
-              <option value="received">New Orders</option>
+              <option value="pending">New Orders</option>
               <option value="preparing">Preparing</option>
               <option value="ready">Ready</option>
               <option value="completed">Completed</option>
@@ -211,9 +245,9 @@ const Orders: React.FC = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Order #{order.id.slice(-6)}
+                  Order #{String(order.id).slice(-6)}
                 </h3>
-                <p className="text-sm text-gray-600">{order.customerName}</p>
+                <p className="text-sm text-gray-600">{order.customer_info.name}</p>
               </div>
               <div className="flex items-center space-x-2">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -224,31 +258,31 @@ const Orders: React.FC = () => {
             </div>
 
             <div className="space-y-2 mb-4">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.quantity}x {item.name}</span>
-                  <span>${item.price.toFixed(2)}</span>
+              {order.items.map((item, index) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <span>{item.quantity}x Beverage #{item.beverage_id}</span>
+                  <span>฿{Number(item.price).toFixed(2)}</span>
                 </div>
               ))}
             </div>
 
             <div className="flex justify-between items-center mb-4">
               <span className="text-lg font-bold text-gray-900">
-                Total: ${order.totalAmount.toFixed(2)}
+                Total: ฿{Number(order.total).toFixed(2)}
               </span>
               <span className="text-sm text-gray-500">
-                {new Date(order.createdAt).toLocaleTimeString()}
+                {order.createdAt ? (isNaN(new Date(order.createdAt).getTime()) ? 'N/A' : new Date(order.createdAt).toLocaleTimeString('th-TH')) : 'N/A'}
               </span>
             </div>
 
-            {order.customerPhone && (
+            {order.customer_info.phone && (
               <div className="flex items-center text-sm text-gray-600 mb-4">
                 <Phone className="h-4 w-4 mr-2" />
                 <a 
-                  href={`tel:${order.customerPhone}`}
+                  href={`tel:${order.customer_info.phone}`}
                   className="hover:text-primary-600 underline"
                 >
-                  {order.customerPhone}
+                  {order.customer_info.phone}
                 </a>
               </div>
             )}
@@ -265,7 +299,7 @@ const Orders: React.FC = () => {
               {getNextStatus(order.status) && (
                 <button
                   onClick={() => updateOrderStatus(order.id, getNextStatus(order.status)!)}
-                  className="btn-primary flex-1"
+                  className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${getStatusButtonColor(order.status)}`}
                 >
                   {getStatusAction(order.status)}
                 </button>

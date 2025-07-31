@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MenuItem, CustomizationOption } from '@/types';
+import { MenuItem } from '@/types';
 import { apiService } from '@/services/api';
 import { X, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,11 +20,11 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: 0,
+    base_price: 0,
     category: '',
     image: '',
-    available: true,
-    customizations: [] as CustomizationOption[]
+    active: true,
+    customizations: {} as { [key: string]: string[] }
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -36,23 +36,23 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     if (item) {
       setFormData({
         name: item.name,
-        description: item.description,
-        price: item.price,
+        description: item.description || '',
+        base_price: item.base_price,
         category: item.category,
         image: item.image || '',
-        available: item.available,
-        customizations: item.customizations
+        active: item.active,
+        customizations: item.customizations || {}
       });
       setImagePreview(item.image || '');
     } else {
       setFormData({
         name: '',
         description: '',
-        price: 0,
+        base_price: 0,
         category: '',
         image: '',
-        available: true,
-        customizations: []
+        active: true,
+        customizations: {}
       });
       setImagePreview('');
     }
@@ -100,7 +100,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
       const itemData = {
         ...formData,
         image: imageUrl,
-        price: Number(formData.price)
+        base_price: Number(formData.base_price)
       };
 
       onSave(itemData);
@@ -112,69 +112,69 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   };
 
   const addCustomization = () => {
-    const newCustomization: CustomizationOption = {
-      id: Date.now().toString(),
-      name: '',
-      type: 'select',
-      options: [''],
-      required: false,
-      additionalPrice: 0
-    };
+    const customizationName = `customization_${Date.now()}`;
     setFormData(prev => ({
       ...prev,
-      customizations: [...prev.customizations, newCustomization]
+      customizations: {
+        ...prev.customizations,
+        [customizationName]: ['']
+      }
     }));
   };
 
-  const updateCustomization = (index: number, updates: Partial<CustomizationOption>) => {
+  const updateCustomizationKey = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey) return;
+    setFormData(prev => {
+      const newCustomizations = { ...prev.customizations };
+      newCustomizations[newKey] = newCustomizations[oldKey];
+      delete newCustomizations[oldKey];
+      return {
+        ...prev,
+        customizations: newCustomizations
+      };
+    });
+  };
+
+  const removeCustomization = (key: string) => {
+    setFormData(prev => {
+      const newCustomizations = { ...prev.customizations };
+      delete newCustomizations[key];
+      return {
+        ...prev,
+        customizations: newCustomizations
+      };
+    });
+  };
+
+  const addOption = (customKey: string) => {
     setFormData(prev => ({
       ...prev,
-      customizations: prev.customizations.map((custom, i) => 
-        i === index ? { ...custom, ...updates } : custom
-      )
+      customizations: {
+        ...prev.customizations,
+        [customKey]: [...(prev.customizations[customKey] || []), '']
+      }
     }));
   };
 
-  const removeCustomization = (index: number) => {
+  const updateOption = (customKey: string, optionIndex: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      customizations: prev.customizations.filter((_, i) => i !== index)
+      customizations: {
+        ...prev.customizations,
+        [customKey]: prev.customizations[customKey].map((opt, j) => 
+          j === optionIndex ? value : opt
+        )
+      }
     }));
   };
 
-  const addOption = (customIndex: number) => {
+  const removeOption = (customKey: string, optionIndex: number) => {
     setFormData(prev => ({
       ...prev,
-      customizations: prev.customizations.map((custom, i) => 
-        i === customIndex 
-          ? { ...custom, options: [...custom.options, ''] }
-          : custom
-      )
-    }));
-  };
-
-  const updateOption = (customIndex: number, optionIndex: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      customizations: prev.customizations.map((custom, i) => 
-        i === customIndex 
-          ? { 
-              ...custom, 
-              options: custom.options.map((opt, j) => j === optionIndex ? value : opt)
-            }
-          : custom
-      )
-    }));
-  };
-
-  const removeOption = (customIndex: number, optionIndex: number) => {
-    setFormData(prev => ({
-      ...prev,
-      customizations: prev.customizations.map((custom, i) => 
-        i === customIndex 
-          ? { ...custom, options: custom.options.filter((_, j) => j !== optionIndex) }
-          : custom
-      )
+      customizations: {
+        ...prev.customizations,
+        [customKey]: prev.customizations[customKey].filter((_, j) => j !== optionIndex)
+      }
     }));
   };
 
@@ -220,15 +220,15 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price *
+                      Base Price *
                     </label>
                     <input
                       type="number"
                       required
                       min="0"
                       step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                      value={formData.base_price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, base_price: parseFloat(e.target.value) || 0 }))}
                       className="input"
                       placeholder="0.00"
                     />
@@ -237,15 +237,14 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description *
+                    Description
                   </label>
                   <textarea
-                    required
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     className="input"
-                    placeholder="Item description"
+                    placeholder="Item description (optional)"
                   />
                 </div>
 
@@ -269,12 +268,12 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                       Availability
                     </label>
                     <select
-                      value={formData.available.toString()}
-                      onChange={(e) => setFormData(prev => ({ ...prev, available: e.target.value === 'true' }))}
+                      value={formData.active.toString()}
+                      onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.value === 'true' }))}
                       className="input"
                     >
-                      <option value="true">Available</option>
-                      <option value="false">Unavailable</option>
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
                     </select>
                   </div>
                 </div>
@@ -328,87 +327,55 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    {formData.customizations.map((customization, index) => (
-                      <div key={customization.id} className="border rounded-md p-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    {Object.entries(formData.customizations).map(([key, options]) => (
+                      <div key={key} className="border rounded-md p-3">
+                        <div className="grid grid-cols-1 gap-3 mb-3">
                           <input
                             type="text"
-                            placeholder="Customization name"
-                            value={customization.name}
-                            onChange={(e) => updateCustomization(index, { name: e.target.value })}
-                            className="input text-sm"
-                          />
-                          <select
-                            value={customization.type}
-                            onChange={(e) => updateCustomization(index, { type: e.target.value as any })}
-                            className="input text-sm"
-                          >
-                            <option value="select">Single Select</option>
-                            <option value="multiselect">Multi Select</option>
-                            <option value="text">Text Input</option>
-                          </select>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={customization.required}
-                              onChange={(e) => updateCustomization(index, { required: e.target.checked })}
-                              className="h-4 w-4 text-primary-600 rounded border-gray-300"
-                            />
-                            <label className="ml-2 text-sm text-gray-700">Required</label>
-                          </div>
-                          <input
-                            type="number"
-                            placeholder="Additional price"
-                            min="0"
-                            step="0.01"
-                            value={customization.additionalPrice || 0}
-                            onChange={(e) => updateCustomization(index, { additionalPrice: parseFloat(e.target.value) || 0 })}
+                            placeholder="Customization name (e.g., sizes, milk, extras)"
+                            value={key}
+                            onChange={(e) => updateCustomizationKey(key, e.target.value)}
                             className="input text-sm"
                           />
                         </div>
 
-                        {customization.type !== 'text' && (
-                          <div>
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-xs text-gray-600">Options:</span>
-                              <button
-                                type="button"
-                                onClick={() => addOption(index)}
-                                className="text-xs text-primary-600 hover:text-primary-800"
-                              >
-                                + Add Option
-                              </button>
-                            </div>
-                            <div className="space-y-1">
-                              {customization.options.map((option, optionIndex) => (
-                                <div key={optionIndex} className="flex items-center space-x-2">
-                                  <input
-                                    type="text"
-                                    placeholder="Option value"
-                                    value={option}
-                                    onChange={(e) => updateOption(index, optionIndex, e.target.value)}
-                                    className="input text-xs flex-1"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => removeOption(index, optionIndex)}
-                                    className="p-1 text-red-500 hover:text-red-700"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-xs text-gray-600">Options:</span>
+                            <button
+                              type="button"
+                              onClick={() => addOption(key)}
+                              className="text-xs text-primary-600 hover:text-primary-800"
+                            >
+                              + Add Option
+                            </button>
                           </div>
-                        )}
+                          <div className="space-y-1">
+                            {options.map((option, optionIndex) => (
+                              <div key={optionIndex} className="flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  placeholder="Option value"
+                                  value={option}
+                                  onChange={(e) => updateOption(key, optionIndex, e.target.value)}
+                                  className="input text-xs flex-1"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeOption(key, optionIndex)}
+                                  className="p-1 text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
                         <div className="flex justify-end mt-2">
                           <button
                             type="button"
-                            onClick={() => removeCustomization(index)}
+                            onClick={() => removeCustomization(key)}
                             className="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1"
                           >
                             <Trash2 className="h-3 w-3" />

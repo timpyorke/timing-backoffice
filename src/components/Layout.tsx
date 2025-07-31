@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
   Coffee,
@@ -14,19 +15,20 @@ import {
   X,
   Volume2,
   VolumeX,
+  Languages,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const { unreadCount, markAsRead, soundEnabled, toggleSound } = useNotifications();
   const location = useLocation();
 
   const navigation = [
-    { name: 'Orders', href: '/', icon: ShoppingCart, badge: unreadCount },
-    { name: 'Menu', href: '/menu', icon: MenuIcon },
-    { name: 'Sales', href: '/sales', icon: TrendingUp },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
+    { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
+    { name: t('nav.settings'), href: '/settings', icon: Settings },
   ];
 
   const handleLogout = async () => {
@@ -56,10 +58,10 @@ const Layout: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-            <div className="flex-shrink-0 flex items-center px-4">
+            <Link to="/" className="flex-shrink-0 flex items-center px-4 hover:opacity-80 transition-opacity">
               <Coffee className="h-8 w-8 text-primary-600" />
               <span className="ml-2 text-xl font-bold text-gray-900">Timing</span>
-            </div>
+            </Link>
             <nav className="mt-5 px-2 space-y-1">
               {navigation.map((item) => (
                 <Link
@@ -74,11 +76,6 @@ const Layout: React.FC = () => {
                 >
                   <item.icon className="mr-4 h-6 w-6" />
                   {item.name}
-                  {item.badge && item.badge > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                       {item.badge == 0 ? 'c' : 'm'}
-                    </span>
-                  )}
                 </Link>
               ))}
             </nav>
@@ -91,10 +88,10 @@ const Layout: React.FC = () => {
         <div className="flex flex-col w-64">
           <div className="flex flex-col h-0 flex-1 bg-white border-r border-gray-200">
             <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <div className="flex items-center flex-shrink-0 px-4">
+              <Link to="/" className="flex items-center flex-shrink-0 px-4 hover:opacity-80 transition-opacity">
                 <Coffee className="h-8 w-8 text-primary-600" />
                 <span className="ml-2 text-xl font-bold text-gray-900">Timing</span>
-              </div>
+              </Link>
               <nav className="mt-5 flex-1 px-2 space-y-1">
                 {navigation.map((item) => (
                   <Link
@@ -108,11 +105,6 @@ const Layout: React.FC = () => {
                   >
                     <item.icon className="mr-3 h-5 w-5" />
                     {item.name}
-                    {item.badge && item.badge > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                      {item.badge}
-                      </span>
-                    )}
                   </Link>
                 ))}
               </nav>
@@ -137,7 +129,7 @@ const Layout: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
                     <div className="flex items-center space-x-2">
                       <span className="text-lg font-semibold text-gray-900">
-                        Back Office Dashboard
+                        {t('header.dashboard')}
                       </span>
                     </div>
                   </div>
@@ -145,6 +137,16 @@ const Layout: React.FC = () => {
               </div>
             </div>
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
+              {/* Language toggle */}
+              <button
+                onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}
+                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 flex items-center space-x-1"
+                title="Switch language"
+              >
+                <Languages className="h-5 w-5" />
+                <span className="text-sm font-medium">{language === 'th' ? 'TH' : 'EN'}</span>
+              </button>
+
               {/* Sound toggle */}
               <button
                 onClick={() => toggleSound(!soundEnabled)}
