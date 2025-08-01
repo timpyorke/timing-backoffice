@@ -77,25 +77,6 @@ class ApiService {
     return this.request(endpoint);
   }
 
-  async uploadMenuImage(file: File): Promise<{ url: string }> {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_BASE_URL}/admin/menu/upload`, {
-      method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
-    }
-
-    return response.json();
-  }
 
   async getOrder(orderId: string): Promise<Order> {
     return this.request(`/admin/orders/${orderId}`);

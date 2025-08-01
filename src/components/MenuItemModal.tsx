@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem } from '@/types';
-import { apiService } from '@/services/api';
 import { X, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { uploadImage } from '@/services/supabase';
 
 interface MenuItemModalProps {
   isOpen: boolean;
@@ -41,7 +41,9 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         category: item.category,
         image: item.image || '',
         active: item.active,
-        customizations: item.customizations || {}
+        customizations: Object.fromEntries(
+          Object.entries(item.customizations || {}).map(([k, v]) => [k, v ?? []])
+        )
       });
       setImagePreview(item.image || '');
     } else {
@@ -71,13 +73,13 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     }
   };
 
-  const uploadImage = async (): Promise<string> => {
+  const uploadImageToSupabase = async (): Promise<string> => {
     if (!imageFile) return formData.image;
 
     setUploading(true);
     try {
-      const response = await apiService.uploadMenuImage(imageFile);
-      return response.url;
+      const imageUrl = await uploadImage(imageFile);
+      return imageUrl;
     } catch (error) {
       console.error('Failed to upload image:', error);
       toast.error('Failed to upload image');
@@ -94,7 +96,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     try {
       let imageUrl = formData.image;
       if (imageFile) {
-        imageUrl = await uploadImage();
+        imageUrl = await uploadImageToSupabase();
       }
 
       const itemData = {
