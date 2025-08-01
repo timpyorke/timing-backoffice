@@ -17,7 +17,8 @@ export interface Order {
 }
 
 export interface OrderItem {
-  beverage_id: number;
+  menu_id: number;
+  menu_name: string;
   quantity: number;
   price: number;
   customizations?: {
@@ -42,7 +43,7 @@ export interface MenuItem {
   description?: string;
   base_price: number;
   category: string;
-  image?: string;
+  image_url?: string;
   active: boolean;
   customizations?: {
     sizes?: string[];

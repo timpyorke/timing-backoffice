@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import TokenStatus from '@/components/TokenStatus';
 import {
   Coffee,
   ShoppingCart,
@@ -137,6 +138,9 @@ const Layout: React.FC = () => {
               </div>
             </div>
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
+              {/* Token Status */}
+              <TokenStatus />
+
               {/* Language toggle */}
               <button
                 onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}

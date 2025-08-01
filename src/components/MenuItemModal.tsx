@@ -23,6 +23,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     base_price: 0,
     category: '',
     image: '',
+    image_url: '',
     active: true,
     customizations: {} as { [key: string]: string[] }
   });
@@ -40,12 +41,13 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         base_price: item.base_price,
         category: item.category,
         image: item.image || '',
+        image_url: item.image_url || '',
         active: item.active,
         customizations: Object.fromEntries(
           Object.entries(item.customizations || {}).map(([k, v]) => [k, v ?? []])
         )
       });
-      setImagePreview(item.image || '');
+      setImagePreview(item.image_url || item.image || '');
     } else {
       setFormData({
         name: '',
@@ -53,6 +55,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         base_price: 0,
         category: '',
         image: '',
+        image_url: '',
         active: true,
         customizations: {}
       });
@@ -74,7 +77,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   };
 
   const uploadImageToSupabase = async (): Promise<string> => {
-    if (!imageFile) return formData.image;
+    if (!imageFile) return formData.image_url || formData.image;
 
     setUploading(true);
     try {
@@ -94,7 +97,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     setSaving(true);
 
     try {
-      let imageUrl = formData.image;
+      let imageUrl = formData.image_url || formData.image;
       if (imageFile) {
         imageUrl = await uploadImageToSupabase();
       }
@@ -102,6 +105,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
       const itemData = {
         ...formData,
         image: imageUrl,
+        image_url: imageUrl,
         base_price: Number(formData.base_price)
       };
 
@@ -285,6 +289,22 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image
                   </label>
+                  
+                  {/* Image URL Input */}
+                  <div className="mb-3">
+                    <input
+                      type="url"
+                      placeholder="Image URL (optional)"
+                      value={formData.image_url}
+                      onChange={(e) => {
+                        setFormData(prev => ({ ...prev, image_url: e.target.value }));
+                        setImagePreview(e.target.value);
+                      }}
+                      className="input w-full"
+                    />
+                  </div>
+
+                  {/* File Upload */}
                   <div className="flex items-center space-x-4">
                     <div className="flex-1">
                       <input
@@ -299,15 +319,29 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                         className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Upload className="h-4 w-4 mr-2" />
-                        Choose Image
+                        Upload Image
                       </label>
+                      <span className="ml-2 text-xs text-gray-500">or enter URL above</span>
                     </div>
                     {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-16 w-16 object-cover rounded-md border"
-                      />
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="h-20 w-20 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImagePreview('');
+                            setFormData(prev => ({ ...prev, image_url: '', image: '' }));
+                            setImageFile(null);
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

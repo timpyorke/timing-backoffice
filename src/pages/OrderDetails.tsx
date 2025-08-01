@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useMenuItems } from '@/hooks/useMenuItems';
 import { 
   ArrowLeft, 
   Clock, 
@@ -23,6 +24,8 @@ const OrderDetails: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  
+  const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
 
   const formatDate = (dateInput: any): string => {
     if (!dateInput) return t('common.na');
@@ -73,6 +76,16 @@ const OrderDetails: React.FC = () => {
         }
         
         setOrder(fetchedOrder);
+
+        // Preload menu items for all items in this order
+        // Handle both menu_id for backward compatibility
+        const menuIds = (fetchedOrder.items || [])
+          .map(item => item.menu_id)
+          .filter(Boolean);
+        console.log('OrderDetails: Extracted menu IDs:', menuIds);
+        if (menuIds.length > 0) {
+          preloadMenuItems(menuIds);
+        }
       } catch (error) {
         console.error('Failed to fetch order:', error);
         toast.error('Failed to load order details');
@@ -138,9 +151,11 @@ const OrderDetails: React.FC = () => {
         
         <div class="items">
           <h4>Items:</h4>
-          ${(order.items || []).map((item) => `
+          ${(order.items || []).map((item) => {
+            const menuId = item.menu_id;
+            return `
             <div class="item">
-              <span>${item.quantity}x Beverage #${item.beverage_id}</span>
+              <span>${item.quantity}x ${getMenuItemNameSync(menuId)}</span>
               <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
             ${item.customizations && Object.keys(item.customizations).length > 0 ? 
@@ -149,8 +164,8 @@ const OrderDetails: React.FC = () => {
                   ${key}: ${Array.isArray(values) ? values.join(', ') : values}
                 </div>` : ''
               ).join('') : ''
-            }
-          `).join('')}
+            }`;
+          }).join('')}
         </div>
         
         ${order.specialInstructions ? `
@@ -323,7 +338,7 @@ const OrderDetails: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">
-                        {item.quantity}x Beverage #{item.beverage_id}
+                        {item.quantity}x {getMenuItemNameSync(item.menu_id )}
                       </h3>
                       {item.customizations && Object.keys(item.customizations).length > 0 && (
                         <div className="mt-1 space-y-1">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiService } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
+import { useMenuItems } from '@/hooks/useMenuItems';
 import { 
   RefreshCw, 
   Clock, 
@@ -20,6 +21,8 @@ const Orders: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [apiError, setApiError] = useState(false);
+  
+  const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
 
   const fetchOrders = async () => {
     try {
@@ -50,6 +53,17 @@ const Orders: React.FC = () => {
       
       setOrders(fetchedOrders);
       setApiError(false);
+
+      // Preload menu items for all items in orders
+      // Handle both menu_id for backward compatibility
+      const menuIds = fetchedOrders.flatMap(order => 
+        (order.items || []).map(item => item.menu_id).filter(Boolean)
+      );
+      console.log('Orders: Extracted menu IDs:', menuIds);
+      console.log('Orders: Sample order items:', fetchedOrders[0]?.items);
+      if (menuIds.length > 0) {
+        preloadMenuItems(menuIds);
+      }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
       setApiError(true);
@@ -123,9 +137,9 @@ const Orders: React.FC = () => {
 
   const getStatusAction = (status: OrderStatus): string => {
     switch (status) {
-      case 'pending': return 'Start Preparing';
-      case 'preparing': return 'Mark Ready';
-      case 'ready': return 'Complete Order';
+      case 'pending': return 'Start';
+      case 'preparing': return 'Ready';
+      case 'ready': return 'Complete';
       default: return '';
     }
   };
@@ -241,7 +255,7 @@ const Orders: React.FC = () => {
       {/* Orders Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredOrders.map((order) => (
-          <div key={order.id} className="card p-6 hover:shadow-md transition-shadow">
+          <div key={order.id} className="card p-6 hover:shadow-md transition-shadow flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -257,13 +271,17 @@ const Orders: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2 mb-4">
-              {order.items.map((item, index) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span>{item.quantity}x Beverage #{item.beverage_id}</span>
-                  <span>฿{Number(item.price).toFixed(2)}</span>
-                </div>
-              ))}
+            <div className="space-y-2 mb-4 flex-1">
+              {(order.items || []).map((item, index) => {
+                const menuId = item?.menu_id;
+                console.log(`Orders render: Item ${index} menu_id:`, item?.menu_id, 'using:', menuId);
+                return (
+                  <div key={index} className="flex justify-between text-sm">
+                    <span className="truncate mr-2">{item?.quantity || 0}x {getMenuItemNameSync(menuId)}</span>
+                    <span className="flex-shrink-0">฿{Number(item?.price || 0).toFixed(2)}</span>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex justify-between items-center mb-4">
@@ -287,21 +305,21 @@ const Orders: React.FC = () => {
               </div>
             )}
 
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 min-h-[2.5rem] mt-auto">
               <Link
                 to={`/orders/${order.id}`}
-                className="btn-secondary flex-1 flex items-center justify-center space-x-2"
+                className="btn-secondary flex-1 flex items-center justify-center space-x-1 whitespace-nowrap text-sm"
               >
-                <Eye className="h-4 w-4" />
-                <span>View Details</span>
+                <Eye className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">View</span>
               </Link>
               
               {getNextStatus(order.status) && (
                 <button
                   onClick={() => updateOrderStatus(order.id, getNextStatus(order.status)!)}
-                  className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${getStatusButtonColor(order.status)}`}
+                  className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${getStatusButtonColor(order.status)}`}
                 >
-                  {getStatusAction(order.status)}
+                  <span className="truncate">{getStatusAction(order.status)}</span>
                 </button>
               )}
             </div>

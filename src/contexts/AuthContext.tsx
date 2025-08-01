@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshToken: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,14 +31,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Proactive token refresh
   useEffect(() => {
+    let tokenRefreshInterval: NodeJS.Timeout | null = null;
+
+    const startTokenRefresh = (firebaseUser: User) => {
+      // Refresh token every 45 minutes (Firebase tokens expire after 1 hour)
+      tokenRefreshInterval = setInterval(async () => {
+        try {
+          console.log('Proactively refreshing token...');
+          const newToken = await firebaseUser.getIdToken(true);
+          localStorage.setItem('token', newToken);
+          console.log('Token refreshed proactively');
+        } catch (error) {
+          console.error('Proactive token refresh failed:', error);
+        }
+      }, 45 * 60 * 1000); // 45 minutes
+    };
+
+    const stopTokenRefresh = () => {
+      if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+      }
+    };
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
       if (firebaseUser) {
+        // Start proactive token refresh
+        startTokenRefresh(firebaseUser);
+
         // Check if we have user data in localStorage first
         const userData = localStorage.getItem('user');
         if (userData) {
           setUser(JSON.parse(userData));
+          // Ensure we have a fresh token
+          try {
+            const token = await firebaseUser.getIdToken();
+            localStorage.setItem('token', token);
+          } catch (error) {
+            console.error('Failed to get initial token:', error);
+          }
         } else {
           // If no user data in localStorage, create it from Firebase user
           const token = await firebaseUser.getIdToken();
@@ -53,6 +88,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(newUserData);
         }
       } else {
+        // Stop token refresh when user logs out
+        stopTokenRefresh();
         setUser(null);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
@@ -60,7 +97,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      stopTokenRefresh();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -111,12 +151,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshToken = async () => {
+    try {
+      if (firebaseUser) {
+        console.log('Manually refreshing token...');
+        const newToken = await firebaseUser.getIdToken(true);
+        localStorage.setItem('token', newToken);
+        console.log('Token refreshed manually');
+      } else {
+        throw new Error('No authenticated user found');
+      }
+    } catch (error) {
+      console.error('Manual token refresh failed:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     firebaseUser,
     loading,
     login,
     logout,
+    refreshToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
