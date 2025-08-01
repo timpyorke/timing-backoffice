@@ -48,11 +48,6 @@ const OrderDetails: React.FC = () => {
     return isNaN(date.getTime()) ? t('common.na') : date.toLocaleTimeString(locale);
   };
 
-  const formatCurrency = (amount: any): string => {
-    const num = Number(amount || 0);
-    return `฿${num.toFixed(2)}`;
-  };
-
   useEffect(() => {
     const fetchOrder = async () => {
       if (!id) return;

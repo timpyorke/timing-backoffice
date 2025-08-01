@@ -17,7 +17,7 @@ export const uploadImage = async (file: File) => {
   const filePath = `public/${fileName}`;
 
   // Upload to public bucket
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from('public-images')
     .upload(filePath, file, {
       cacheControl: '3600',
