@@ -7,7 +7,7 @@ import { uploadImage } from '@/services/supabase';
 interface MenuItemModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>) => void;
   item?: MenuItem | null;
 }
 
@@ -22,7 +22,6 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     description: '',
     base_price: 0,
     category: '',
-    image: '',
     image_url: '',
     active: true,
     customizations: {} as { [key: string]: string[] }
@@ -40,21 +39,19 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         description: item.description || '',
         base_price: item.base_price,
         category: item.category,
-        image: item.image || '',
         image_url: item.image_url || '',
         active: item.active,
         customizations: Object.fromEntries(
           Object.entries(item.customizations || {}).map(([k, v]) => [k, v ?? []])
         )
       });
-      setImagePreview(item.image_url || item.image || '');
+      setImagePreview(item.image_url || '');
     } else {
       setFormData({
         name: '',
         description: '',
         base_price: 0,
         category: '',
-        image: '',
         image_url: '',
         active: true,
         customizations: {}
@@ -77,7 +74,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   };
 
   const uploadImageToSupabase = async (): Promise<string> => {
-    if (!imageFile) return formData.image_url || formData.image;
+    if (!imageFile) return formData.image_url;
 
     setUploading(true);
     try {
@@ -97,7 +94,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     setSaving(true);
 
     try {
-      let imageUrl = formData.image_url || formData.image;
+      let imageUrl = formData.image_url;
       if (imageFile) {
         imageUrl = await uploadImageToSupabase();
       }

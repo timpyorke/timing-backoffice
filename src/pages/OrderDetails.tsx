@@ -146,7 +146,7 @@ const OrderDetails: React.FC = () => {
           ${order.customer_info?.phone ? `<p><strong>Phone:</strong> ${order.customer_info.phone}</p>` : ''}
           ${order.customer_info?.email ? `<p><strong>Email:</strong> ${order.customer_info.email}</p>` : ''}
           <p><strong>Status:</strong> ${order.status.toUpperCase()}</p>
-          <p><strong>Date:</strong> ${order.createdAt ? (isNaN(new Date(order.createdAt).getTime()) ? 'N/A' : new Date(order.createdAt).toLocaleString()) : 'N/A'}</p>
+          <p><strong>Date:</strong> ${order.created_at ? (isNaN(new Date(order.created_at).getTime()) ? 'N/A' : new Date(order.created_at).toLocaleString()) : 'N/A'}</p>
         </div>
         
         <div class="items">
@@ -155,7 +155,7 @@ const OrderDetails: React.FC = () => {
             const menuId = item.menu_id;
             return `
             <div class="item">
-              <span>${item.quantity}x ${getMenuItemNameSync(menuId)}</span>
+              <span>${item.quantity}x ${item.menu_name || getMenuItemNameSync(menuId)}</span>
               <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
             ${item.customizations && Object.keys(item.customizations).length > 0 ? 
@@ -298,7 +298,7 @@ const OrderDetails: React.FC = () => {
                 <CheckCircle className="h-4 w-4 mr-3" />
                 <span className="text-sm">Order Received</span>
                 <span className="ml-auto text-xs text-gray-500">
-                  {formatDate(order.createdAt)}
+                  {formatDate(order.created_at)}
                 </span>
               </div>
               <div className={`flex items-center ${order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
@@ -338,7 +338,7 @@ const OrderDetails: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">
-                        {item.quantity}x {getMenuItemNameSync(item.menu_id )}
+                        {item.quantity}x {item.menu_name || getMenuItemNameSync(item.menu_id)}
                       </h3>
                       {item.customizations && Object.keys(item.customizations).length > 0 && (
                         <div className="mt-1 space-y-1">
@@ -423,7 +423,7 @@ const OrderDetails: React.FC = () => {
                 <Calendar className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
                   <p className="text-sm text-gray-900">Order Date</p>
-                  <p className="text-sm text-gray-500">{formatDateOnly(order.createdAt)}</p>
+                  <p className="text-sm text-gray-500">{formatDateOnly(order.created_at)}</p>
                 </div>
               </div>
               
@@ -431,7 +431,7 @@ const OrderDetails: React.FC = () => {
                 <Clock className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
                   <p className="text-sm text-gray-900">Order Time</p>
-                  <p className="text-sm text-gray-500">{formatTimeOnly(order.createdAt)}</p>
+                  <p className="text-sm text-gray-500">{formatTimeOnly(order.created_at)}</p>
                 </div>
               </div>
               

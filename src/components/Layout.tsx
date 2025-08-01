@@ -8,7 +8,6 @@ import {
   Coffee,
   ShoppingCart,
   Menu as MenuIcon,
-  TrendingUp,
   Settings,
   Bell,
   LogOut,

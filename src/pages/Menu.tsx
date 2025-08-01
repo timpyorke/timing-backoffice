@@ -106,7 +106,7 @@ const Menu: React.FC = () => {
     }
   };
 
-  const handleSaveItem = async (itemData: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSaveItem = async (itemData: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       if (editingItem) {
         const updatedItem = await apiService.updateMenuItem(editingItem.id, itemData);
@@ -212,9 +212,9 @@ const Menu: React.FC = () => {
           <div key={item.id} className="card overflow-hidden hover:shadow-lg transition-shadow">
             {/* Image */}
             <div className="h-48 bg-gray-200 relative overflow-hidden">
-              {(item.image_url || item.image) ? (
+              {(item.image_url) ? (
                 <img
-                  src={item.image_url || item.image}
+                  src={item.image_url}
                   alt={item.name}
                   className="w-full h-full object-cover transition-transform hover:scale-105"
                   onError={(e) => {

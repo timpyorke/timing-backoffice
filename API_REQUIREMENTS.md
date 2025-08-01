@@ -7,6 +7,7 @@ The back office application now requires a complete backend API. All mock data h
 The app uses **Firebase Authentication** for login, but expects JWT tokens from your API for subsequent requests.
 
 ### Login Flow:
+
 1. User logs in with Firebase Auth (email/password)
 2. Frontend gets Firebase ID token
 3. All API requests include: `Authorization: Bearer <firebase-id-token>`
@@ -15,11 +16,13 @@ The app uses **Firebase Authentication** for login, but expects JWT tokens from 
 ## 📡 Required API Endpoints
 
 ### Base URL
+
 ```
 http://localhost:8000/api
 ```
 
 ### 1. Authentication (Optional)
+
 ```http
 POST /admin/login
 Content-Type: application/json
@@ -34,7 +37,7 @@ Response:
   "token": "jwt-token-here",
   "user": {
     "id": "user-id",
-    "email": "admin@timing.com", 
+    "email": "admin@timing.com",
     "name": "Admin User",
     "role": "admin"
   }
@@ -42,6 +45,7 @@ Response:
 ```
 
 ### 2. Orders Management
+
 ```http
 # Get all orders (with optional filters)
 GET /admin/orders?status=received&date=2024-01-15&limit=50
@@ -62,6 +66,7 @@ Response: Order
 ```
 
 ### 3. Menu Management
+
 ```http
 # Get all menu items
 GET /admin/menu
@@ -106,6 +111,7 @@ Response: 204 No Content
 ```
 
 ### 4. Sales Analytics
+
 ```http
 # Get daily sales summary
 GET /admin/sales/today?date=2024-01-15
@@ -115,6 +121,7 @@ Response: DailySales
 ```
 
 ### 5. File Upload
+
 ```http
 # Upload menu item image
 POST /admin/menu/upload
@@ -130,6 +137,7 @@ Response:
 ```
 
 ### 6. FCM Token (Optional)
+
 ```http
 # Save FCM token for push notifications
 POST /admin/fcm-token
@@ -146,13 +154,14 @@ Response: 200 OK
 ## 📊 Data Types
 
 ### Order
+
 ```typescript
 interface Order {
   id: string;
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
-  status: 'received' | 'preparing' | 'ready' | 'completed';
+  status: "received" | "preparing" | "ready" | "completed";
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
@@ -178,6 +187,7 @@ interface Customization {
 ```
 
 ### MenuItem
+
 ```typescript
 interface MenuItem {
   id: string;
@@ -195,7 +205,7 @@ interface MenuItem {
 interface CustomizationOption {
   id: string;
   name: string;
-  type: 'select' | 'multiselect' | 'text';
+  type: "select" | "multiselect" | "text";
   options: string[];
   required: boolean;
   additionalPrice?: number;
@@ -203,6 +213,7 @@ interface CustomizationOption {
 ```
 
 ### DailySales
+
 ```typescript
 interface DailySales {
   date: string;
@@ -227,6 +238,7 @@ interface DailySales {
 ## 🚨 Error Handling
 
 Expected error responses:
+
 ```json
 {
   "error": "Error message",
@@ -235,6 +247,7 @@ Expected error responses:
 ```
 
 Common status codes:
+
 - `401` - Unauthorized (invalid/expired token)
 - `403` - Forbidden (insufficient permissions)
 - `404` - Not found
@@ -250,7 +263,7 @@ Use tools like Postman or curl to test endpoints:
 curl -H "Authorization: Bearer your-token" \
      http://localhost:8000/api/admin/orders
 
-# Update order status  
+# Update order status
 curl -X PUT \
      -H "Authorization: Bearer your-token" \
      -H "Content-Type: application/json" \

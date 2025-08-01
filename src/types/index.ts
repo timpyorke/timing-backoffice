@@ -10,8 +10,8 @@ export interface Order {
   items: OrderItem[];
   status: OrderStatus;
   total: number;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
   estimatedTime?: number;
   specialInstructions?: string;
 }
@@ -51,8 +51,8 @@ export interface MenuItem {
     extras?: string[];
     [key: string]: string[] | undefined;
   };
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface CustomizationOption {

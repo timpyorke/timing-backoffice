@@ -14,7 +14,7 @@ const translations = {
     'nav.orders': 'Orders',
     'nav.menu': 'Menu',
     'nav.settings': 'Settings',
-    'header.dashboard': 'Back Office Dashboard',
+    'header.dashboard': 'Back Office',
     
     // Orders
     'orders.title': 'Orders Dashboard',

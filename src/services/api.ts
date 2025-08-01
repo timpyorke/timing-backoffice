@@ -159,7 +159,7 @@ class ApiService {
     return this.request(`/admin/menu/${id}`);
   }
 
-  async createMenuItem(item: Omit<MenuItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<MenuItem> {
+  async createMenuItem(item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<MenuItem> {
     return this.request('/admin/menu', {
       method: 'POST',
       body: JSON.stringify(item),

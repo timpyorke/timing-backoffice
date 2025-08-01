@@ -273,11 +273,11 @@ const Orders: React.FC = () => {
 
             <div className="space-y-2 mb-4 flex-1">
               {(order.items || []).map((item, index) => {
-                const menuId = item?.menu_id;
-                console.log(`Orders render: Item ${index} menu_id:`, item?.menu_id, 'using:', menuId);
+                console.log(`Orders render: Item ${index}:`, item);
+                const displayName = item?.menu_name || getMenuItemNameSync(item?.menu_id);
                 return (
                   <div key={index} className="flex justify-between text-sm">
-                    <span className="truncate mr-2">{item?.quantity || 0}x {getMenuItemNameSync(menuId)}</span>
+                    <span className="truncate mr-2">{item?.quantity || 0}x {displayName}</span>
                     <span className="flex-shrink-0">฿{Number(item?.price || 0).toFixed(2)}</span>
                   </div>
                 );
@@ -289,7 +289,7 @@ const Orders: React.FC = () => {
                 Total: ฿{Number(order.total).toFixed(2)}
               </span>
               <span className="text-sm text-gray-500">
-                {order.createdAt ? (isNaN(new Date(order.createdAt).getTime()) ? 'N/A' : new Date(order.createdAt).toLocaleTimeString('th-TH')) : 'N/A'}
+               Order at : {order.created_at ? (isNaN(new Date(order.created_at).getTime()) ? 'N/A' : new Date(order.created_at).toLocaleTimeString('th-TH')) : 'N/A'}
               </span>
             </div>
 
