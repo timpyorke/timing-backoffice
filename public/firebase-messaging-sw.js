@@ -2,12 +2,12 @@ importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-messaging-compat.js');
 
 const firebaseConfig = {
-  apiKey: "your_api_key_here",
-  authDomain: "your_project.firebaseapp.com",
-  projectId: "your_project_id",
-  storageBucket: "your_project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
+  apiKey: "AIzaSyBLIUoNY7mEoVIRm4qynhrfCJWLuhOEgks",
+  authDomain: "timing-48aba.firebaseapp.com",
+  projectId: "timing-48aba",
+  storageBucket: "timing-48aba.firebasestorage.app",
+  messagingSenderId: "559626455223",
+  appId: "1:559626455223:web:fe11c7fa0103ab9329a532"
 };
 
 firebase.initializeApp(firebaseConfig);
