@@ -82,9 +82,14 @@ class ApiService {
     }
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {},
+    retries = 3,
+    delay = 1000
+  ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    
+
     try {
       const headers = await this.getHeaders();
       const response = await fetch(url, {
@@ -92,14 +97,22 @@ class ApiService {
         ...options,
       });
 
-      // If token is expired (401), try to refresh and retry
+      if (response.status === 429 && retries > 0) {
+        const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
+        const waitTime = retryAfter * 1000 + Math.random() * 1000; // Add jitter
+        
+        console.warn(`Rate limited. Retrying after ${waitTime / 1000} seconds...`);
+        await new Promise(res => setTimeout(res, waitTime));
+        
+        return this.request(endpoint, options, retries - 1, delay * 2);
+      }
+      
       if (response.status === 401) {
         console.log('Token expired, attempting refresh...');
         
         try {
           await this.refreshToken();
           
-          // Retry the request with new token
           const newHeaders = await this.getHeaders();
           const retryResponse = await fetch(url, {
             headers: newHeaders,
@@ -123,7 +136,12 @@ class ApiService {
 
       return response.json();
     } catch (error) {
-      console.error('API request failed:', error);
+      if (retries > 0) {
+        console.warn(`Request failed. Retrying in ${delay / 1000}s...`, error);
+        await new Promise(res => setTimeout(res, delay));
+        return this.request(endpoint, options, retries - 1, delay * 2);
+      }
+      console.error('API request failed after multiple retries:', error);
       throw error;
     }
   }

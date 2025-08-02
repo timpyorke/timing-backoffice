@@ -96,11 +96,11 @@ export const useMenuItems = () => {
     return `Menu Item #${menuId}`;
   }, [menuItemCache, getMenuItemById]);
 
-  const preloadMenuItems = useCallback(async (ids: (string | number)[]): Promise<void> => {
+  const preloadMenuItems = useCallback(async (ids: (string | number)[], batchSize = 10): Promise<void> => {
     console.log('preloadMenuItems: Called with IDs:', ids);
     console.log('preloadMenuItems: Current cache:', menuItemCache);
     console.log('preloadMenuItems: Currently loading:', Array.from(loadingItems));
-    
+
     const idsToFetch = ids
       .map(id => id.toString())
       .filter(id => !menuItemCache[id] && !loadingItems.has(id));
@@ -112,7 +112,6 @@ export const useMenuItems = () => {
       return;
     }
 
-    // Mark as loading
     setLoadingItems(prev => {
       const newSet = new Set(prev);
       idsToFetch.forEach(id => newSet.add(id));
@@ -120,32 +119,35 @@ export const useMenuItems = () => {
     });
 
     try {
-      const fetchPromises = idsToFetch.map(async (id) => {
-        try {
-          const menuItem = await apiService.getMenuItemById(id);
-          return { id, menuItem };
-        } catch (error) {
-          console.error(`Failed to fetch menu item ${id}:`, error);
-          return { id, menuItem: null };
-        }
-      });
-
-      const results = await Promise.all(fetchPromises);
-      
-      // Update cache with successful results
-      setMenuItemCache(prev => {
-        const newCache = { ...prev };
-        results.forEach(({ id, menuItem }) => {
-          if (menuItem) {
-            newCache[id] = menuItem;
+      for (let i = 0; i < idsToFetch.length; i += batchSize) {
+        const batch = idsToFetch.slice(i, i + batchSize);
+        console.log(`Preloading batch: ${batch.join(', ')}`);
+        
+        const fetchPromises = batch.map(async (id) => {
+          try {
+            const menuItem = await apiService.getMenuItemById(id);
+            return { id, menuItem };
+          } catch (error) {
+            console.error(`Failed to fetch menu item ${id}:`, error);
+            return { id, menuItem: null };
           }
         });
-        return newCache;
-      });
+
+        const results = await Promise.all(fetchPromises);
+
+        setMenuItemCache(prev => {
+          const newCache = { ...prev };
+          results.forEach(({ id, menuItem }) => {
+            if (menuItem) {
+              newCache[id] = menuItem;
+            }
+          });
+          return newCache;
+        });
+      }
     } catch (error) {
       console.error('Failed to preload menu items:', error);
     } finally {
-      // Remove from loading set
       setLoadingItems(prev => {
         const newSet = new Set(prev);
         idsToFetch.forEach(id => newSet.delete(id));
