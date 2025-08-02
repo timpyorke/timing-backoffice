@@ -7,6 +7,7 @@ export const useNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationPayload[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [badgeCount, setBadgeCount] = useState(0);
 
   useEffect(() => {
     setPermission(Notification.permission);
@@ -28,7 +29,11 @@ export const useNotifications = () => {
     const unsubscribe = notificationService.onNotification((payload) => {
       setNotifications(prev => [payload, ...prev.slice(0, 49)]);
       setUnreadCount(prev => prev + 1);
+      setBadgeCount(notificationService.getBadgeCount());
     });
+
+    // Initialize badge count
+    setBadgeCount(notificationService.getBadgeCount());
 
     return unsubscribe;
   }, []);
@@ -46,11 +51,15 @@ export const useNotifications = () => {
 
   const markAsRead = useCallback(() => {
     setUnreadCount(0);
+    notificationService.clearBadge();
+    setBadgeCount(0);
   }, []);
 
   const clearNotifications = useCallback(() => {
     setNotifications([]);
     setUnreadCount(0);
+    notificationService.clearBadge();
+    setBadgeCount(0);
   }, []);
 
   const toggleSound = useCallback((enabled: boolean) => {
@@ -62,6 +71,7 @@ export const useNotifications = () => {
     token,
     notifications,
     unreadCount,
+    badgeCount,
     requestPermission,
     markAsRead,
     clearNotifications,

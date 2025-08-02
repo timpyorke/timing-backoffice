@@ -6,6 +6,7 @@ class NotificationService {
   private messaging = getFirebaseMessaging();
   private notificationCallbacks: ((payload: NotificationPayload) => void)[] = [];
   private soundEnabled = true;
+  private badgeCount = 0;
 
   async requestPermission(): Promise<string | null> {
     if (!this.messaging) {
@@ -60,6 +61,8 @@ class NotificationService {
 
   private showNotification(payload: NotificationPayload): void {
     if (Notification.permission === 'granted') {
+      this.incrementBadgeCount();
+      
       const notification = new Notification(payload.title, {
         body: payload.body,
         icon: '/logo192.png',
@@ -67,15 +70,22 @@ class NotificationService {
         tag: payload.orderId,
         requireInteraction: true,
         data: payload.data,
+        silent: false,
       });
 
       notification.onclick = () => {
         window.focus();
         window.location.hash = `#/orders/${payload.orderId}`;
         notification.close();
+        this.decrementBadgeCount();
       };
 
-      setTimeout(() => notification.close(), 10000);
+      // Keep notification open longer for better visibility
+      setTimeout(() => {
+        if (notification.tag) {
+          notification.close();
+        }
+      }, 30000);
     }
   }
 
@@ -114,6 +124,48 @@ class NotificationService {
     return stored === null ? true : stored === 'true';
   }
 
+  private async updateBadge(count: number): Promise<void> {
+    try {
+      if ('navigator' in window && 'setAppBadge' in navigator) {
+        if (count > 0) {
+          await (navigator as any).setAppBadge(count);
+        } else {
+          await (navigator as any).clearAppBadge();
+        }
+      }
+    } catch (error) {
+      console.log('Badge API not supported or failed:', error);
+    }
+  }
+
+  private incrementBadgeCount(): void {
+    this.badgeCount++;
+    this.updateBadge(this.badgeCount);
+    localStorage.setItem('notification_badge_count', this.badgeCount.toString());
+  }
+
+  private decrementBadgeCount(): void {
+    this.badgeCount = Math.max(0, this.badgeCount - 1);
+    this.updateBadge(this.badgeCount);
+    localStorage.setItem('notification_badge_count', this.badgeCount.toString());
+  }
+
+  getBadgeCount(): number {
+    return this.badgeCount;
+  }
+
+  clearBadge(): void {
+    this.badgeCount = 0;
+    this.updateBadge(0);
+    localStorage.setItem('notification_badge_count', '0');
+  }
+
+  initializeBadgeCount(): void {
+    const stored = localStorage.getItem('notification_badge_count');
+    this.badgeCount = stored ? parseInt(stored, 10) : 0;
+    this.updateBadge(this.badgeCount);
+  }
+
   async sendTokenToServer(token: string): Promise<void> {
     try {
       const response = await fetch('/api/admin/fcm-token', {
@@ -135,3 +187,8 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
+
+// Initialize badge count on service creation
+if (typeof window !== 'undefined') {
+  notificationService.initializeBadgeCount();
+}

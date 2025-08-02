@@ -1,6 +1,13 @@
 importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-messaging-compat.js');
 
+// Initialize badge count on service worker startup
+self.addEventListener('activate', function(event) {
+  console.log('[firebase-messaging-sw.js] Service worker activated.');
+  const badgeCount = getBadgeCount();
+  updateBadge(badgeCount);
+});
+
 const firebaseConfig = {
   apiKey: "AIzaSyBLIUoNY7mEoVIRm4qynhrfCJWLuhOEgks",
   authDomain: "timing-48aba.firebaseapp.com",
@@ -17,6 +24,9 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
   
+  // Increment badge count
+  incrementBadgeCount();
+  
   const notificationTitle = payload.notification.title || 'New Order';
   const notificationOptions = {
     body: payload.notification.body || 'You have a new order',
@@ -25,6 +35,8 @@ messaging.onBackgroundMessage(function(payload) {
     tag: payload.data?.orderId || 'order',
     requireInteraction: true,
     data: payload.data,
+    silent: false,
+    vibrate: [200, 100, 200],
     actions: [
       {
         action: 'view',
@@ -37,13 +49,54 @@ messaging.onBackgroundMessage(function(payload) {
     ]
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+// Badge management functions
+function getBadgeCount() {
+  return parseInt(localStorage.getItem('sw_badge_count') || '0', 10);
+}
+
+function setBadgeCount(count) {
+  localStorage.setItem('sw_badge_count', count.toString());
+  updateBadge(count);
+}
+
+function incrementBadgeCount() {
+  const newCount = getBadgeCount() + 1;
+  setBadgeCount(newCount);
+}
+
+function decrementBadgeCount() {
+  const newCount = Math.max(0, getBadgeCount() - 1);
+  setBadgeCount(newCount);
+}
+
+function updateBadge(count) {
+  if (self.registration && self.registration.sync) {
+    try {
+      if ('setAppBadge' in navigator) {
+        if (count > 0) {
+          navigator.setAppBadge(count);
+        } else {
+          navigator.clearAppBadge();
+        }
+      }
+    } catch (error) {
+      console.log('Badge API not available in service worker:', error);
+    }
+  }
+}
 
 self.addEventListener('notificationclick', function(event) {
   console.log('[firebase-messaging-sw.js] Notification click received.');
 
   event.notification.close();
+  
+  // Decrement badge count when notification is clicked
+  if (event.action !== 'dismiss') {
+    decrementBadgeCount();
+  }
 
   if (event.action === 'dismiss') {
     return;
@@ -70,4 +123,11 @@ self.addEventListener('notificationclick', function(event) {
       }
     })
   );
+});
+
+// Handle notification close events
+self.addEventListener('notificationclose', function(event) {
+  console.log('[firebase-messaging-sw.js] Notification closed.');
+  // Optionally decrement badge count when notification is dismissed
+  // decrementBadgeCount();
 });
