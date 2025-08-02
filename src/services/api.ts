@@ -1,4 +1,4 @@
-import { Order, MenuItem, DailySales, OrderStatus } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse } from '@/types';
 import { auth } from '@/services/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -222,6 +222,36 @@ class ApiService {
     }
     
     return response.json();
+  }
+
+  async getSalesInsights(filters?: {
+    start_date?: string;
+    end_date?: string;
+  }): Promise<SalesInsights> {
+    const params = new URLSearchParams();
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    
+    const queryString = params.toString();
+    const endpoint = `/admin/sales/insights${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
+  }
+
+  async getTopSellingItems(filters?: {
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<TopSellingItemsResponse> {
+    const params = new URLSearchParams();
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    
+    const queryString = params.toString();
+    const endpoint = `/admin/sales/top-items${queryString ? `?${queryString}` : ''}`;
+    
+    return this.request(endpoint);
   }
 }
 

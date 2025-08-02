@@ -90,3 +90,63 @@ export interface NotificationPayload {
   body: string;
   data?: Record<string, string>;
 }
+
+export interface SalesInsights {
+  success: boolean;
+  data: {
+    summary: {
+      total_orders: number;
+      total_revenue: number;
+      average_order_value: number;
+      completed_orders: number;
+      pending_orders: number;
+      preparing_orders: number;
+      ready_orders: number;
+      cancelled_orders: number;
+      completed_revenue: number;
+      completion_rate: string;
+    };
+    daily_breakdown: DailyBreakdown[];
+  };
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+}
+
+export interface DailyBreakdown {
+  total_orders: number;
+  total_revenue: number;
+  average_order_value: number;
+  completed_orders: string;
+  pending_orders: string;
+  preparing_orders: string;
+  ready_orders: string;
+  cancelled_orders: string;
+  completed_revenue: string;
+  order_date: string;
+  total_period_orders: string;
+}
+
+export interface TopSellingItem {
+  menu_id: number;
+  menu_name: string;
+  category: string;
+  base_price: number;
+  image_url: string;
+  total_quantity_sold: number;
+  number_of_orders: number;
+  total_revenue: number;
+  average_price: number;
+  percentage_of_total_sales: number;
+}
+
+export interface TopSellingItemsResponse {
+  success: boolean;
+  data: TopSellingItem[];
+  period: {
+    start_date: string;
+    end_date: string;
+  };
+  count: number;
+}
