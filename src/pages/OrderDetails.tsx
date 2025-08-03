@@ -56,13 +56,12 @@ const OrderDetails: React.FC = () => {
         const response = await apiService.getOrder(id);
         console.log('Order API Response:', response); // Debug log
         
-        // Handle different response structures
+        // Handle API response structure: { success: true, data: Order }
         let fetchedOrder: Order;
         if (response && typeof response === 'object') {
-          if (response.data) {
-            fetchedOrder = response.data;
-          } else if (response.order) {
-            fetchedOrder = response.order;
+          const apiResponse = response as any;
+          if (apiResponse.success && apiResponse.data) {
+            fetchedOrder = apiResponse.data;
           } else {
             fetchedOrder = response as Order;
           }

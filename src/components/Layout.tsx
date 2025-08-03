@@ -15,6 +15,8 @@ import {
   Volume2,
   VolumeX,
   Languages,
+  BarChart3,
+  Home,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -25,8 +27,10 @@ const Layout: React.FC = () => {
   const location = useLocation();
 
   const navigation = [
+    { name: 'Dashboard', href: '/', icon: Home },
     { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
     { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
+    { name: 'Sales', href: '/sales', icon: BarChart3 },
     { name: t('nav.settings'), href: '/settings', icon: Settings },
   ];
 
@@ -40,6 +44,27 @@ const Layout: React.FC = () => {
 
   const isCurrentPath = (path: string) => {
     return location.pathname === path || (path === '/' && location.pathname === '/');
+  };
+
+  const getPageTitle = () => {
+    const path = location.pathname;
+    switch (path) {
+      case '/':
+        return 'Dashboard';
+      case '/orders':
+        return 'Orders';
+      case '/menu':
+        return 'Menu Management';
+      case '/sales':
+        return 'Sales Analytics';
+      case '/settings':
+        return 'Settings';
+      default:
+        if (path.startsWith('/orders/')) {
+          return 'Order Details';
+        }
+        return 'Dashboard';
+    }
   };
 
   return (
@@ -128,7 +153,7 @@ const Layout: React.FC = () => {
                   <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
                     <div className="flex items-center space-x-2">
                       <span className="text-lg font-semibold text-gray-900">
-                        {t('header.dashboard')}
+                        {getPageTitle()}
                       </span>
                     </div>
                   </div>

@@ -8,6 +8,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
 import Orders from '@/pages/Orders';
 import OrderDetails from '@/pages/OrderDetails';
 import Menu from '@/pages/Menu';
@@ -31,10 +32,11 @@ const App: React.FC = () => {
                     </ProtectedRoute>
                   }
                 >
-                  <Route index element={<Sales />} />
+                  <Route index element={<Dashboard />} />
                   <Route path="orders" element={<Orders />} />
                   <Route path="orders/:id" element={<OrderDetails />} />
                   <Route path="menu" element={<Menu />} />
+                  <Route path="sales" element={<Sales />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
               </Routes>

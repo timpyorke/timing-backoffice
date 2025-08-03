@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { apiService } from '@/services/api';
-import { Order, OrderStatus } from '@/types';
+import { Link, useNavigate } from 'react-router-dom';
+import { OrderStatus } from '@/types';
 import { useMenuItems } from '@/hooks/useMenuItems';
+import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { 
   RefreshCw, 
   Clock, 
@@ -12,119 +12,68 @@ import {
   Eye,
   Filter
 } from 'lucide-react';
-import { toast } from 'sonner';
 import NoBackendMessage from '@/components/NoBackendMessage';
+import OrderStatusBadge from '@/components/OrderStatusBadge';
+import ConnectionStatus from '@/components/ConnectionStatus';
+import NewOrderNotification from '@/components/NewOrderNotification';
 
 const Orders: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
-  const [apiError, setApiError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const navigate = useNavigate();
   
   const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
+  
+  // Use real-time orders hook
+  const {
+    orders,
+    connectionStatus,
+    newOrderNotification,
+    loading,
+    error: apiError,
+    connect,
+    refreshOrders,
+    updateOrderStatus: realtimeUpdateOrderStatus,
+    clearNewOrderNotification
+  } = useRealtimeOrders({
+    enableNotifications: true,
+    autoConnect: true
+  });
 
-  const fetchOrders = async () => {
-    try {
-      const filters = statusFilter !== 'all' ? { status: statusFilter } : {};
-      const response = await apiService.getOrders(filters);
-      console.log('Orders API Response:', response); // Debug log
-      
-      // Handle different response structures
-      let fetchedOrders: Order[] = [];
-      if (Array.isArray(response)) {
-        fetchedOrders = response;
-      } else if (response && typeof response === 'object') {
-        const responseObj = response as any;
-        if (Array.isArray(responseObj.data)) {
-          fetchedOrders = responseObj.data;
-        } else if (responseObj.orders && Array.isArray(responseObj.orders)) {
-          fetchedOrders = responseObj.orders;
-        } else if (responseObj.items && Array.isArray(responseObj.items)) {
-          fetchedOrders = responseObj.items;
-        } else {
-          console.warn('Unexpected orders response structure:', response);
-          fetchedOrders = [];
-        }
-      } else {
-        console.warn('Unexpected orders response type:', typeof response);
-        fetchedOrders = [];
-      }
-      
-      setOrders(fetchedOrders);
-      setApiError(false);
-
-      // Preload menu items for all items in orders
-      // Handle both menu_id for backward compatibility
-      const menuIds = fetchedOrders.flatMap(order => 
+  // Preload menu items when orders change
+  useEffect(() => {
+    if (orders.length > 0) {
+      const menuIds = orders.flatMap(order => 
         (order.items || []).map(item => item.menu_id).filter(Boolean)
       );
       console.log('Orders: Extracted menu IDs:', menuIds);
-      console.log('Orders: Sample order items:', fetchedOrders[0]?.items);
       if (menuIds.length > 0) {
         preloadMenuItems(menuIds);
       }
-    } catch (error) {
-      console.error('Failed to fetch orders:', error);
-      setApiError(true);
-      // Set empty orders instead of failing
-      setOrders([]);
-      if (!refreshing) {
-        toast.error('No backend API available. Please start your API server.');
-      }
+    }
+  }, [orders, preloadMenuItems]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refreshOrders();
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, [statusFilter]);
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchOrders();
-  };
-
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      await apiService.updateOrderStatus(orderId, newStatus);
-      setOrders(prev => 
-        Array.isArray(prev) ? prev.map(order => 
-          order.id === orderId 
-            ? { ...order, status: newStatus, updatedAt: new Date() }
-            : order
-        ) : []
-      );
-      toast.success(`Order status updated to ${newStatus}`);
+      await realtimeUpdateOrderStatus(orderId, newStatus);
     } catch (error) {
       console.error('Failed to update order status:', error);
-      toast.error('Failed to update order status');
     }
   };
 
-  const getStatusColor = (status: OrderStatus): string => {
-    switch (status) {
-      case 'pending': return 'bg-blue-100 text-blue-800';
-      case 'preparing': return 'bg-yellow-100 text-yellow-800';
-      case 'ready': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  const handleViewOrder = (orderId: string) => {
+    navigate(`/orders/${orderId}`);
   };
 
-  const getStatusIcon = (status: OrderStatus) => {
-    switch (status) {
-      case 'pending': return <AlertCircle className="h-4 w-4" />;
-      case 'preparing': return <Clock className="h-4 w-4" />;
-      case 'ready': return <CheckCircle className="h-4 w-4" />;
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'cancelled': return <AlertCircle className="h-4 w-4" />;
-      default: return <AlertCircle className="h-4 w-4" />;
-    }
-  };
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
     switch (currentStatus) {
@@ -175,9 +124,25 @@ const Orders: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* New Order Notification */}
+      {newOrderNotification && (
+        <NewOrderNotification
+          order={newOrderNotification}
+          onClose={clearNewOrderNotification}
+          onViewOrder={handleViewOrder}
+        />
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
+          <ConnectionStatus
+            status={connectionStatus}
+            onRetry={connect}
+            size="sm"
+          />
+        </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-gray-500" />
@@ -264,10 +229,7 @@ const Orders: React.FC = () => {
                 <p className="text-sm text-gray-600">{order.customer_info.name}</p>
               </div>
               <div className="flex items-center space-x-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                  {getStatusIcon(order.status)}
-                  <span className="ml-1 capitalize">{order.status}</span>
-                </span>
+                <OrderStatusBadge status={order.status} />
               </div>
             </div>
 
@@ -289,7 +251,10 @@ const Orders: React.FC = () => {
                 Total: ฿{Number(order.total).toFixed(2)}
               </span>
               <span className="text-sm text-gray-500">
-               Order at : {order.created_at ? (isNaN(new Date(order.created_at).getTime()) ? 'N/A' : new Date(order.created_at).toLocaleTimeString('th-TH')) : 'N/A'}
+               Order at: {order.created_at ? (() => {
+                 const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;
+                 return isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString('th-TH');
+               })() : 'N/A'}
               </span>
             </div>
 
