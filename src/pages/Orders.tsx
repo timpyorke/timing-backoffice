@@ -22,6 +22,22 @@ const Orders: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
   
+  // Get auto refresh interval from settings
+  const getAutoRefreshInterval = (): number => {
+    try {
+      const settings = localStorage.getItem('app_settings');
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        return parsed.autoRefreshInterval || 0;
+      }
+    } catch (error) {
+      console.error('Failed to parse app settings:', error);
+    }
+    return 0; // disabled by default
+  };
+  
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
+  
   const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
   
   // Use real-time orders hook
@@ -37,8 +53,36 @@ const Orders: React.FC = () => {
     clearNewOrderNotification
   } = useRealtimeOrders({
     enableNotifications: true,
-    autoConnect: true
+    autoConnect: true,
+    autoRefreshInterval
   });
+
+  // Listen for settings changes to update auto refresh interval
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'app_settings' && e.newValue) {
+        try {
+          const newSettings = JSON.parse(e.newValue);
+          setAutoRefreshInterval(newSettings.autoRefreshInterval || 0);
+        } catch (error) {
+          console.error('Failed to parse updated settings:', error);
+        }
+      }
+    };
+
+    const handleSettingsChanged = (e: CustomEvent) => {
+      const newSettings = e.detail;
+      setAutoRefreshInterval(newSettings.autoRefreshInterval || 0);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('settingsChanged', handleSettingsChanged as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('settingsChanged', handleSettingsChanged as EventListener);
+    };
+  }, []);
 
   // Preload menu items when orders change
   useEffect(() => {

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export interface UseRealtimeOrdersOptions {
   enableNotifications?: boolean;
   autoConnect?: boolean;
+  autoRefreshInterval?: number; // in seconds, 0 means disabled
 }
 
 export interface UseRealtimeOrdersReturn {
@@ -25,7 +26,8 @@ export interface UseRealtimeOrdersReturn {
 export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRealtimeOrdersReturn => {
   const {
     enableNotifications = true,
-    autoConnect = true
+    autoConnect = true,
+    autoRefreshInterval = 0 // disabled by default
   } = options;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -36,6 +38,7 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
   
   const notificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoRefreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Clear notification after delay
   const clearNewOrderNotification = useCallback(() => {
@@ -205,6 +208,24 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
     };
   }, []);
 
+  // Auto refresh functionality
+  useEffect(() => {
+    if (autoRefreshInterval > 0) {
+      console.log(`🔄 Setting up auto refresh every ${autoRefreshInterval} seconds`);
+      autoRefreshIntervalRef.current = setInterval(() => {
+        console.log('🔄 Auto refreshing orders...');
+        refreshOrders();
+      }, autoRefreshInterval * 1000);
+    }
+
+    return () => {
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+        autoRefreshIntervalRef.current = null;
+      }
+    };
+  }, [autoRefreshInterval, refreshOrders]);
+
   // Initial setup
   useEffect(() => {
     // Load initial orders
@@ -219,6 +240,9 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
     return () => {
       disconnect();
       clearNewOrderNotification();
+      if (autoRefreshIntervalRef.current) {
+        clearInterval(autoRefreshIntervalRef.current);
+      }
     };
   }, [autoConnect, connect, disconnect, refreshOrders, clearNewOrderNotification]);
 

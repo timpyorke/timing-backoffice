@@ -20,6 +20,7 @@ class TimingWebSocketClient {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     // Use the base URL without any path modifications for Socket.IO
     this.baseUrl = apiUrl.replace('/api', '');
+    console.log('🌐 WebSocket base URL:', this.baseUrl);
   }
 
   setCallbacks(callbacks: WebSocketCallbacks) {

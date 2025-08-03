@@ -57,6 +57,12 @@ const Settings: React.FC = () => {
   const handleSaveSettings = () => {
     // In a real app, you would save these settings to a backend or local storage
     localStorage.setItem('app_settings', JSON.stringify(settings));
+    
+    // Trigger a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('settingsChanged', { 
+      detail: settings 
+    }));
+    
     toast.success('Settings saved successfully');
   };
 
