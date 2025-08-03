@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import TokenStatus from '@/components/TokenStatus';
+
 import { 
   User, 
   Bell, 
@@ -114,6 +116,8 @@ const Settings: React.FC = () => {
                 {user?.role || 'Staff'}
               </div>
             </div>
+               {/* Token Status */}
+              <TokenStatus />
           </div>
         </div>
 
