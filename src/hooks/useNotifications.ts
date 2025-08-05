@@ -29,11 +29,8 @@ export const useNotifications = () => {
     const unsubscribe = notificationService.onNotification((payload) => {
       setNotifications(prev => [payload, ...prev.slice(0, 49)]);
       setUnreadCount(prev => prev + 1);
-      setBadgeCount(notificationService.getBadgeCount());
     });
 
-    // Initialize badge count
-    setBadgeCount(notificationService.getBadgeCount());
 
     return unsubscribe;
   }, []);
