@@ -56,20 +56,7 @@ class NotificationService {
     });
   }
 
-  private showNotification(payload: NotificationPayload): void {
-    if (Notification.permission === 'granted') {
-      // Keep notification open longer for better visibility
-      setTimeout(() => {
-        if (notification.tag) {
-          notification.close();
-        }
-      }, 30000);
-    }
-  }
-
   private playNotificationSound(): void {
-    if (!this.soundEnabled) return;
-    
     try {
       const audio = new Audio('/notification-sound.mp3');
       audio.volume = 0.5;
@@ -93,7 +80,6 @@ class NotificationService {
   }
 
   toggleSound(enabled: boolean): void {
-    this.soundEnabled = enabled;
     localStorage.setItem('notification_sound', enabled.toString());
   }
 
@@ -117,7 +103,6 @@ class NotificationService {
   initializeBadgeCount(): void {
     const stored = localStorage.getItem('notification_badge_count');
     this.badgeCount = stored ? parseInt(stored, 10) : 0;
-    this.updateBadge(this.badgeCount);
   }
 
   async sendTokenToServer(token: string): Promise<void> {
