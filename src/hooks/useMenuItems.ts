@@ -65,12 +65,12 @@ export const useMenuItems = () => {
     
     // Check cache first
     if (menuItemCache[id]) {
-      return menuItemCache[id].name;
+      return menuItemCache[id].name_en || menuItemCache[id].name || 'Unknown Item';
     }
 
     // If not in cache, try to fetch
     const menuItem = await getMenuItemById(id);
-    return menuItem?.name || `Menu Item #${menuId}`;
+    return menuItem?.name_en || menuItem?.name || `Menu Item #${menuId}`;
   }, [menuItemCache, getMenuItemById]);
 
   const getMenuItemNameSync = useCallback((menuId: number | string): string => {
@@ -86,8 +86,9 @@ export const useMenuItems = () => {
     const cachedItem = menuItemCache[id];
     
     if (cachedItem) {
-      console.log(`getMenuItemNameSync: Found cached item ${id}:`, cachedItem.name);
-      return cachedItem.name;
+      const name = cachedItem.name_en || cachedItem.name || 'Unknown Item';
+      console.log(`getMenuItemNameSync: Found cached item ${id}:`, name);
+      return name;
     }
 
     console.log(`getMenuItemNameSync: Item ${id} not cached, triggering fetch`);

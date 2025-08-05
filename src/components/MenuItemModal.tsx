@@ -3,6 +3,7 @@ import { MenuItem } from '@/types';
 import { X, Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadImage } from '@/services/supabase';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MenuItemModalProps {
   isOpen: boolean;
@@ -17,11 +18,15 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   onSave,
   item
 }) => {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
+    name_en: '',
+    name_th: '',
+    description_en: '',
+    description_th: '',
     base_price: 0,
-    category: '',
+    category_en: '',
+    category_th: '',
     image_url: '',
     active: true,
     customizations: {} as { [key: string]: string[] }
@@ -35,10 +40,13 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   useEffect(() => {
     if (item) {
       setFormData({
-        name: item.name,
-        description: item.description || '',
+        name_en: item.name_en || item.name || '',
+        name_th: item.name_th || item.name || '',
+        description_en: item.description_en || item.description || '',
+        description_th: item.description_th || item.description || '',
         base_price: item.base_price,
-        category: item.category,
+        category_en: item.category_en || item.category || '',
+        category_th: item.category_th || item.category || '',
         image_url: item.image_url || '',
         active: item.active,
         customizations: Object.fromEntries(
@@ -48,10 +56,13 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
       setImagePreview(item.image_url || '');
     } else {
       setFormData({
-        name: '',
-        description: '',
+        name_en: '',
+        name_th: '',
+        description_en: '',
+        description_th: '',
         base_price: 0,
-        category: '',
+        category_en: '',
+        category_th: '',
         image_url: '',
         active: true,
         customizations: {}
@@ -193,7 +204,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
             <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  {item ? 'Edit Menu Item' : 'Add New Menu Item'}
+                  {item ? t('menuForm.editTitle') : t('menuForm.addTitle')}
                 </h3>
                 <button
                   type="button"
@@ -206,24 +217,41 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
 
               <div className="space-y-4">
                 {/* Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="input"
-                      placeholder="Item name"
-                    />
+                <div className="space-y-4">
+                  {/* Name Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('menuForm.nameEn')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name_en}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name_en: e.target.value }))}
+                        className="input"
+                        placeholder={t('menuForm.nameEnPlaceholder')}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('menuForm.nameTh')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name_th}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name_th: e.target.value }))}
+                        className="input"
+                        placeholder={t('menuForm.nameThPlaceholder')}
+                      />
+                    </div>
                   </div>
-
+                  
+                  {/* Base Price */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Base Price *
+                      {t('menuForm.basePriceRequired')}
                     </label>
                     <input
                       type="number"
@@ -233,65 +261,95 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                       value={formData.base_price}
                       onChange={(e) => setFormData(prev => ({ ...prev, base_price: parseFloat(e.target.value) || 0 }))}
                       className="input"
-                      placeholder="0.00"
+                      placeholder={t('menuForm.basePricePlaceholder')}
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="input"
-                    placeholder="Item description (optional)"
-                  />
-                </div>
-
+                {/* Description Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Category *
+                      {t('menuForm.descriptionEn')}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.description_en}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description_en: e.target.value }))}
+                      className="input"
+                      placeholder={t('menuForm.descriptionEnPlaceholder')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('menuForm.descriptionTh')}
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={formData.description_th}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description_th: e.target.value }))}
+                      className="input"
+                      placeholder={t('menuForm.descriptionThPlaceholder')}
+                    />
+                  </div>
+                </div>
+
+                {/* Category Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {t('menuForm.categoryEn')}
                     </label>
                     <input
                       type="text"
                       required
-                      value={formData.category}
-                      onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                      value={formData.category_en}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category_en: e.target.value }))}
                       className="input"
-                      placeholder="e.g., Coffee, Tea, Pastry"
+                      placeholder={t('menuForm.categoryEnPlaceholder')}
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Availability
+                      {t('menuForm.categoryTh')}
                     </label>
-                    <select
-                      value={formData.active.toString()}
-                      onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.value === 'true' }))}
+                    <input
+                      type="text"
+                      required
+                      value={formData.category_th}
+                      onChange={(e) => setFormData(prev => ({ ...prev, category_th: e.target.value }))}
                       className="input"
-                    >
-                      <option value="true">Active</option>
-                      <option value="false">Inactive</option>
-                    </select>
+                      placeholder={t('menuForm.categoryThPlaceholder')}
+                    />
                   </div>
+                </div>
+                
+                {/* Availability */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('menuForm.availability')}
+                  </label>
+                  <select
+                    value={formData.active.toString()}
+                    onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.value === 'true' }))}
+                    className="input"
+                  >
+                    <option value="true">{t('menuForm.active')}</option>
+                    <option value="false">{t('menuForm.inactive')}</option>
+                  </select>
                 </div>
 
                 {/* Image Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image
+                    {t('menuForm.image')}
                   </label>
                   
                   {/* Image URL Input */}
                   <div className="mb-3">
                     <input
                       type="url"
-                      placeholder="Image URL (optional)"
+                      placeholder={t('menuForm.imageUrl')}
                       value={formData.image_url}
                       onChange={(e) => {
                         setFormData(prev => ({ ...prev, image_url: e.target.value }));
@@ -316,9 +374,9 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                         className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Upload className="h-4 w-4 mr-2" />
-                        Upload Image
+                        {t('menuForm.uploadImage')}
                       </label>
-                      <span className="ml-2 text-xs text-gray-500">or enter URL above</span>
+                      <span className="ml-2 text-xs text-gray-500">{t('menuForm.orEnterUrl')}</span>
                     </div>
                     {imagePreview && (
                       <div className="relative">
@@ -347,7 +405,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      Customizations
+                      {t('menuForm.customizations')}
                     </label>
                     <button
                       type="button"
@@ -355,7 +413,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                       className="btn-secondary text-xs flex items-center space-x-1"
                     >
                       <Plus className="h-3 w-3" />
-                      <span>Add</span>
+                      <span>{t('menuForm.addCustomization')}</span>
                     </button>
                   </div>
 
@@ -365,7 +423,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                         <div className="grid grid-cols-1 gap-3 mb-3">
                           <input
                             type="text"
-                            placeholder="Customization name (e.g., sizes, milk, extras)"
+                            placeholder={t('menuForm.customizationPlaceholder')}
                             value={key}
                             onChange={(e) => updateCustomizationKey(key, e.target.value)}
                             className="input text-sm"
@@ -374,13 +432,13 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
 
                         <div>
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs text-gray-600">Options:</span>
+                            <span className="text-xs text-gray-600">{t('menuForm.options')}</span>
                             <button
                               type="button"
                               onClick={() => addOption(key)}
                               className="text-xs text-primary-600 hover:text-primary-800"
                             >
-                              + Add Option
+                              {t('menuForm.addOption')}
                             </button>
                           </div>
                           <div className="space-y-1">
@@ -388,7 +446,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                               <div key={optionIndex} className="flex items-center space-x-2">
                                 <input
                                   type="text"
-                                  placeholder="Option value"
+                                  placeholder={t('menuForm.optionPlaceholder')}
                                   value={option}
                                   onChange={(e) => updateOption(key, optionIndex, e.target.value)}
                                   className="input text-xs flex-1"
@@ -412,7 +470,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                             className="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1"
                           >
                             <Trash2 className="h-3 w-3" />
-                            <span>Remove</span>
+                            <span>{t('menuForm.remove')}</span>
                           </button>
                         </div>
                       </div>
@@ -428,14 +486,14 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                 disabled={saving || uploading}
                 className="btn-primary sm:ml-3 sm:w-auto w-full disabled:opacity-50"
               >
-                {saving ? 'Saving...' : uploading ? 'Uploading...' : (item ? 'Update' : 'Create')}
+                {saving ? t('menuForm.saving') : uploading ? t('menuForm.uploading') : (item ? t('menuForm.update') : t('menuForm.create'))}
               </button>
               <button
                 type="button"
                 onClick={onClose}
                 className="btn-secondary mt-3 sm:mt-0 sm:w-auto w-full"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>

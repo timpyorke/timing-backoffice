@@ -37,10 +37,13 @@ export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'can
 
 export interface MenuItem {
   id: string;
-  name: string;
-  description?: string;
+  name_en: string;
+  name_th: string;
+  description_en?: string;
+  description_th?: string;
   base_price: number;
-  category: string;
+  category_en: string;
+  category_th: string;
   image_url?: string;
   active: boolean;
   customizations?: {
@@ -51,6 +54,10 @@ export interface MenuItem {
   };
   created_at: Date;
   updated_at: Date;
+  // Legacy fields for backward compatibility
+  name?: string;
+  description?: string;
+  category?: string;
 }
 
 export interface CustomizationOption {
