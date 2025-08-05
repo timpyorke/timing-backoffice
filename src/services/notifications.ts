@@ -5,7 +5,6 @@ import { NotificationPayload } from '@/types';
 class NotificationService {
   private messaging = getFirebaseMessaging();
   private notificationCallbacks: ((payload: NotificationPayload) => void)[] = [];
-  private badgeCount = 0;
 
   async requestPermission(): Promise<string | null> {
     if (!this.messaging) {
@@ -98,11 +97,6 @@ class NotificationService {
     } catch (error) {
       console.error('Failed to send clear badge message to service worker:', error);
     }
-  }
-
-  initializeBadgeCount(): void {
-    const stored = localStorage.getItem('notification_badge_count');
-    this.badgeCount = stored ? parseInt(stored, 10) : 0;
   }
 
   async sendTokenToServer(token: string): Promise<void> {
