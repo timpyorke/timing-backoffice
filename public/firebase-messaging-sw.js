@@ -1,7 +1,17 @@
 importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.3.1/firebase-messaging-compat.js');
 
-// Initialize badge count on service worker startup
+// IMPORTANT: The firebaseConfig should be provided by your application,
+// ideally through a global variable set before the service worker is registered,
+// or fetched from a configuration endpoint.
+// Example: self.firebaseConfig = { ... };
+
+if (typeof firebaseConfig === 'undefined') {
+  console.error('[firebase-messaging-sw.js] firebaseConfig is not defined. Please provide it before registering the service worker.');
+} else {
+  firebase.initializeApp(firebaseConfig);
+}
+
 self.addEventListener('activate', function(event) {
   console.log('[firebase-messaging-sw.js] Service worker activated.');
   const badgeCount = getBadgeCount();
@@ -9,16 +19,6 @@ self.addEventListener('activate', function(event) {
 });
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBLIUoNY7mEoVIRm4qynhrfCJWLuhOEgks",
-  authDomain: "timing-48aba.firebaseapp.com",
-  projectId: "timing-48aba",
-  storageBucket: "timing-48aba.firebasestorage.app",
-  messagingSenderId: "559626455223",
-  appId: "1:559626455223:web:fe11c7fa0103ab9329a532"
-};
-
-firebase.initializeApp(firebaseConfig);
-
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function(payload) {
@@ -83,7 +83,7 @@ function updateBadge(count) {
         }
       }
     } catch (error) {
-      console.log('Badge API not available in service worker:', error);
+      console.error('[firebase-messaging-sw.js] Badge API not available or failed in service worker:', error);
     }
   }
 }
@@ -128,6 +128,7 @@ self.addEventListener('notificationclick', function(event) {
 // Handle notification close events
 self.addEventListener('notificationclose', function(event) {
   console.log('[firebase-messaging-sw.js] Notification closed.');
+  // Note: Decrementing badge here might not be ideal if the user didn't interact with the notification
   // Optionally decrement badge count when notification is dismissed
   // decrementBadgeCount();
 });

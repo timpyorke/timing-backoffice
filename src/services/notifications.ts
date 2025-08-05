@@ -5,7 +5,6 @@ import { NotificationPayload } from '@/types';
 class NotificationService {
   private messaging = getFirebaseMessaging();
   private notificationCallbacks: ((payload: NotificationPayload) => void)[] = [];
-  private soundEnabled = true;
   private badgeCount = 0;
 
   async requestPermission(): Promise<string | null> {
@@ -51,8 +50,6 @@ class NotificationService {
         body: payload.notification?.body || 'You have a new order',
         data: payload.data,
       };
-
-      this.showNotification(notificationData);
       this.playNotificationSound();
       
       this.notificationCallbacks.forEach(callback => callback(notificationData));
@@ -61,25 +58,6 @@ class NotificationService {
 
   private showNotification(payload: NotificationPayload): void {
     if (Notification.permission === 'granted') {
-      this.incrementBadgeCount();
-      
-      const notification = new Notification(payload.title, {
-        body: payload.body,
-        icon: '/logo192.png',
-        badge: '/logo192.png',
-        tag: payload.orderId,
-        requireInteraction: true,
-        data: payload.data,
-        silent: false,
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        window.location.hash = `#/orders/${payload.orderId}`;
-        notification.close();
-        this.decrementBadgeCount();
-      };
-
       // Keep notification open longer for better visibility
       setTimeout(() => {
         if (notification.tag) {
@@ -124,40 +102,16 @@ class NotificationService {
     return stored === null ? true : stored === 'true';
   }
 
-  private async updateBadge(count: number): Promise<void> {
+  // Method to clear badge, sends a message to the service worker
+  async clearBadge(): Promise<void> {
     try {
-      if ('navigator' in window && 'setAppBadge' in navigator) {
-        if (count > 0) {
-          await (navigator as any).setAppBadge(count);
-        } else {
-          await (navigator as any).clearAppBadge();
-        }
+      const registration = await navigator.serviceWorker.ready;
+      if (registration && registration.active) {
+        registration.active.postMessage({ type: 'CLEAR_BADGE' });
       }
     } catch (error) {
-      console.log('Badge API not supported or failed:', error);
+      console.error('Failed to send clear badge message to service worker:', error);
     }
-  }
-
-  private incrementBadgeCount(): void {
-    this.badgeCount++;
-    this.updateBadge(this.badgeCount);
-    localStorage.setItem('notification_badge_count', this.badgeCount.toString());
-  }
-
-  private decrementBadgeCount(): void {
-    this.badgeCount = Math.max(0, this.badgeCount - 1);
-    this.updateBadge(this.badgeCount);
-    localStorage.setItem('notification_badge_count', this.badgeCount.toString());
-  }
-
-  getBadgeCount(): number {
-    return this.badgeCount;
-  }
-
-  clearBadge(): void {
-    this.badgeCount = 0;
-    this.updateBadge(0);
-    localStorage.setItem('notification_badge_count', '0');
   }
 
   initializeBadgeCount(): void {
@@ -187,8 +141,3 @@ class NotificationService {
 }
 
 export const notificationService = new NotificationService();
-
-// Initialize badge count on service creation
-if (typeof window !== 'undefined') {
-  notificationService.initializeBadgeCount();
-}
