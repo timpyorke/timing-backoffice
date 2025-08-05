@@ -13,8 +13,11 @@ import {
 import { toast } from 'sonner';
 import MenuItemModal from '@/components/MenuItemModal';
 import NoBackendMessage from '@/components/NoBackendMessage';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getMenuItemName, getMenuItemDescription, getMenuItemCategory } from '@/utils/localization';
 
 const Menu: React.FC = () => {
+  const { t, language } = useLanguage();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,17 +79,17 @@ const Menu: React.FC = () => {
   };
 
   const handleDelete = async (item: MenuItem) => {
-    if (!confirm(`Are you sure you want to delete "${item.name}"?`)) {
+    if (!confirm(`${t('common.delete')} "${item.name}"?`)) {
       return;
     }
 
     try {
       await apiService.deleteMenuItem(item.id);
       setMenuItems(prev => prev.filter(i => i.id !== item.id));
-      toast.success('Menu item deleted successfully');
+      toast.success(t('common.success'));
     } catch (error) {
       console.error('Failed to delete menu item:', error);
-      toast.error('Failed to delete menu item');
+      toast.error(t('common.error'));
     }
   };
 
@@ -99,10 +102,10 @@ const Menu: React.FC = () => {
       setMenuItems(prev => 
         prev.map(i => i.id === item.id ? updatedItem : i)
       );
-      toast.success(`${item.name} is now ${!item.active ? 'available' : 'unavailable'}`);
+      toast.success(`${item.name} is now ${!item.active ? t('menu.available') : t('menu.unavailable')}`);
     } catch (error) {
       console.error('Failed to update menu item:', error);
-      toast.error('Failed to update availability');
+      toast.error(t('common.error'));
     }
   };
 
@@ -113,26 +116,32 @@ const Menu: React.FC = () => {
         setMenuItems(prev => 
           prev.map(i => i.id === editingItem.id ? updatedItem : i)
         );
-        toast.success('Menu item updated successfully');
+        toast.success(t('common.success'));
       } else {
         const newItem = await apiService.createMenuItem(itemData);
         setMenuItems(prev => [...prev, newItem]);
-        toast.success('Menu item created successfully');
+        toast.success(t('common.success'));
       }
       setModalOpen(false);
       setEditingItem(null);
     } catch (error) {
       console.error('Failed to save menu item:', error);
-      toast.error('Failed to save menu item');
+      toast.error(t('common.error'));
     }
   };
 
-  const categories = Array.isArray(menuItems) ? [...new Set(menuItems.map(item => item.category).filter(category => category))] : [];
+  const categories = Array.isArray(menuItems) ? [...new Set(menuItems.map(item => 
+    getMenuItemCategory(item, language)
+  ).filter(category => category))] : [];
 
   const filteredItems = Array.isArray(menuItems) ? menuItems.filter(item => {
-    const matchesSearch = (item.name && item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = categoryFilter === 'all' || item.category === categoryFilter;
+    const name = getMenuItemName(item, language);
+    const description = getMenuItemDescription(item, language);
+    const category = getMenuItemCategory(item, language);
+    
+    const matchesSearch = (name && name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (description && description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
     const matchesAvailability = availabilityFilter === 'all' || 
                                (availabilityFilter === 'available' && item.active) ||
                                (availabilityFilter === 'unavailable' && !item.active);
@@ -152,13 +161,13 @@ const Menu: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Menu Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('menu.title')}</h1>
         <button
           onClick={handleCreate}
           className="btn-primary flex items-center space-x-2"
         >
           <Plus className="h-4 w-4" />
-          <span>Add Item</span>
+          <span>{t('menu.addItem')}</span>
         </button>
       </div>
 
@@ -169,7 +178,7 @@ const Menu: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search menu items..."
+              placeholder={t('menu.search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input pl-10"
@@ -183,7 +192,7 @@ const Menu: React.FC = () => {
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="input"
             >
-              <option value="all">All Categories</option>
+              <option value="all">{t('menu.allCategories')}</option>
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -195,9 +204,9 @@ const Menu: React.FC = () => {
             onChange={(e) => setAvailabilityFilter(e.target.value)}
             className="input"
           >
-            <option value="all">All Items</option>
-            <option value="available">Available Only</option>
-            <option value="unavailable">Unavailable Only</option>
+            <option value="all">{t('menu.allItems')}</option>
+            <option value="available">{t('menu.availableOnly')}</option>
+            <option value="unavailable">{t('menu.unavailableOnly')}</option>
           </select>
           
           <div className="text-sm text-gray-500 flex items-center">
@@ -215,7 +224,7 @@ const Menu: React.FC = () => {
               {(item.image_url) ? (
                 <img
                   src={item.image_url}
-                  alt={item.name}
+                  alt={getMenuItemName(item, language)}
                   className="w-full h-full object-cover transition-transform hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -246,7 +255,7 @@ const Menu: React.FC = () => {
                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center backdrop-blur-sm">
                   <div className="text-center">
                     <EyeOff className="h-8 w-8 text-white mx-auto mb-2" />
-                    <span className="text-white font-semibold text-sm">UNAVAILABLE</span>
+                    <span className="text-white font-semibold text-sm">{t('menu.unavailableLabel')}</span>
                   </div>
                 </div>
               )}
@@ -255,32 +264,35 @@ const Menu: React.FC = () => {
             {/* Content */}
             <div className="p-4">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-gray-900 text-lg">{item.name}</h3>
+                <h3 className="font-semibold text-gray-900 text-lg">{getMenuItemName(item, language)}</h3>
                 <span className="text-lg font-bold text-primary-600">
                   ฿{Number(item.base_price).toFixed(2)}
                 </span>
               </div>
               
-              {item.description && (
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                  {item.description}
-                </p>
-              )}
+              {(() => {
+                const description = getMenuItemDescription(item, language);
+                return description && (
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {description}
+                  </p>
+                );
+              })()}
               
               <div className="flex items-center justify-between mb-4">
                 <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                  {item.category}
+                  {getMenuItemCategory(item, language)}
                 </span>
                 <div className="flex items-center space-x-1">
                   {item.active ? (
                     <>
                       <Eye className="h-4 w-4 text-green-500" />
-                      <span className="text-xs text-green-600">Available</span>
+                      <span className="text-xs text-green-600">{t('menu.available')}</span>
                     </>
                   ) : (
                     <>
                       <EyeOff className="h-4 w-4 text-red-500" />
-                      <span className="text-xs text-red-600">Unavailable</span>
+                      <span className="text-xs text-red-600">{t('menu.unavailable')}</span>
                     </>
                   )}
                 </div>
@@ -318,12 +330,12 @@ const Menu: React.FC = () => {
                   {item.active ? (
                     <>
                       <EyeOff className="h-4 w-4 mr-1" />
-                      Hide
+                      {t('menu.hide')}
                     </>
                   ) : (
                     <>
                       <Eye className="h-4 w-4 mr-1" />
-                      Show
+                      {t('menu.show')}
                     </>
                   )}
                 </button>
@@ -356,7 +368,7 @@ const Menu: React.FC = () => {
               <div className="mx-auto h-12 w-12 text-gray-400">
                 <Search className="h-12 w-12" />
               </div>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No menu items found</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">{t('menu.noItems')}</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {searchTerm || categoryFilter !== 'all' || availabilityFilter !== 'all'
                   ? 'Try adjusting your search criteria.'
@@ -370,7 +382,7 @@ const Menu: React.FC = () => {
                     className="btn-primary"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Menu Item
+                    {t('menu.addItem')}
                   </button>
                 </div>
               )}
