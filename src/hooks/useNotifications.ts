@@ -4,7 +4,7 @@ import { NotificationPayload } from '@/types';
 
 export const useNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationPayload[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [badgeCount, setBadgeCount] = useState(0);
@@ -13,13 +13,12 @@ export const useNotifications = () => {
     setPermission(Notification.permission);
     
     const setupNotifications = async () => {
-      const fcmToken = await notificationService.requestPermission();
-      if (fcmToken) {
-        setToken(fcmToken);
-        await notificationService.sendTokenToServer(fcmToken);
+      await notificationService.initialize();
+      const oneSignalUserId = await notificationService.requestPermission();
+      if (oneSignalUserId) {
+        setUserId(oneSignalUserId);
+        await notificationService.sendTokenToServer(oneSignalUserId);
       }
-      
-      notificationService.setupMessageListener();
     };
 
     if (Notification.permission === 'granted') {
@@ -36,12 +35,12 @@ export const useNotifications = () => {
   }, []);
 
   const requestPermission = useCallback(async () => {
+    await notificationService.initialize();
     const result = await notificationService.requestPermission();
     setPermission(Notification.permission);
     if (result) {
-      setToken(result);
+      setUserId(result);
       await notificationService.sendTokenToServer(result);
-      notificationService.setupMessageListener();
     }
     return result;
   }, []);
@@ -65,7 +64,7 @@ export const useNotifications = () => {
 
   return {
     permission,
-    token,
+    userId,
     notifications,
     unreadCount,
     badgeCount,

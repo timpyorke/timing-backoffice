@@ -19,7 +19,7 @@ const Settings: React.FC = () => {
   const { user } = useAuth();
   const { 
     permission, 
-    token, 
+    userId, 
     requestPermission, 
     soundEnabled, 
     toggleSound 
@@ -156,15 +156,15 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* FCM Token Info */}
-            {token && (
+            {/* OneSignal User ID Info */}
+            {userId && (
               <div className="p-3 bg-blue-50 rounded-md">
                 <div className="flex items-center mb-2">
                   <Smartphone className="h-4 w-4 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-900">Device Token</span>
+                  <span className="text-sm font-medium text-blue-900">OneSignal User ID</span>
                 </div>
                 <div className="text-xs text-blue-700 font-mono bg-blue-100 p-2 rounded break-all">
-                  {token.substring(0, 50)}...
+                  {userId.substring(0, 50)}...
                 </div>
               </div>
             )}
