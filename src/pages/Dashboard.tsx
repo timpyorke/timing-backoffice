@@ -66,11 +66,13 @@ const Dashboard: React.FC = () => {
         const todayResponse = await apiService.getDailySales(today);
         console.log('Today response:', todayResponse);
         
-        // Handle different response structures for daily sales
+        // Handle new API response structure: { success: true, data: DailySales }
         if (todayResponse && typeof todayResponse === 'object') {
-          // Check if it's wrapped in a data property
-          if ('data' in todayResponse) {
-            setTodaySales(todayResponse.data as DailySales);
+          const response = todayResponse as any;
+          if (response.success && response.data) {
+            setTodaySales(response.data as DailySales);
+          } else if ('data' in response) {
+            setTodaySales(response.data as DailySales);
           } else {
             setTodaySales(todayResponse as DailySales);
           }
@@ -147,7 +149,7 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.totalRevenue || 0).toLocaleString()}
+                ฿{(todaySales?.total_revenue || todaySales?.totalRevenue || 0).toLocaleString()}
               </p>
             </div>
           </div>
@@ -162,7 +164,7 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Orders</p>
               <p className="text-2xl font-bold text-gray-900">
-                {todaySales?.totalOrders || 0}
+                {todaySales?.total_orders || todaySales?.totalOrders || 0}
               </p>
             </div>
           </div>
@@ -177,7 +179,7 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Avg. Order Value</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.averageOrderValue || 0).toFixed(0)}
+                ฿{(todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0)).toFixed(0)}
               </p>
             </div>
           </div>
@@ -198,6 +200,26 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Completion Rate */}
+      {todaySales?.completion_rate && (
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Completion Rate</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {todaySales.completion_rate}%
+              </p>
+              <p className="text-sm text-gray-600">
+                {todaySales.completed_orders} of {todaySales.total_orders} completed
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Order Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
