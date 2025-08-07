@@ -1,5 +1,5 @@
 import React from 'react';
-import { OrderStatus } from '@/types';
+import { OrderStatus, normalizeOrderStatus } from '@/types';
 import { 
   Clock, 
   CheckCircle, 
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 interface OrderStatusBadgeProps {
-  status: OrderStatus;
+  status: OrderStatus | string; // Allow string to handle API responses
   showIcon?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -71,7 +71,9 @@ const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({
     }
   };
 
-  const config = getStatusConfig(status);
+  // Normalize the status to handle API responses that might be capitalized
+  const normalizedStatus = typeof status === 'string' ? normalizeOrderStatus(status) : status;
+  const config = getStatusConfig(normalizedStatus);
   const sizeClasses = getSizeClasses(size);
 
   return (

@@ -106,11 +106,34 @@ const Orders: React.FC = () => {
     }
   };
 
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<string>>(new Set());
+
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    // Prevent multiple simultaneous updates for the same order
+    if (updatingOrderIds.has(orderId)) {
+      console.warn('Order update already in progress for:', orderId);
+      return;
+    }
+
+    setUpdatingOrderIds(prev => new Set([...prev, orderId]));
+    
     try {
+      console.log(`Updating order ${orderId} from status to ${newStatus}`);
       await realtimeUpdateOrderStatus(orderId, newStatus);
+      console.log(`Successfully updated order ${orderId} to ${newStatus}`);
     } catch (error) {
       console.error('Failed to update order status:', error);
+      // Additional error details
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+    } finally {
+      setUpdatingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
     }
   };
 
@@ -146,10 +169,15 @@ const Orders: React.FC = () => {
     }
   };
 
+  // Debug logging for order display issues
+  console.log(`Orders Component: Loaded ${orders?.length || 0} orders, filtering by "${statusFilter}"`);
+
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     if (statusFilter === 'all') return true;
     return order.status === statusFilter;
   }) : [];
+
+  console.log(`Orders Component: Displaying ${filteredOrders.length} orders after filtering`);
 
   const ordersByStatus = {
     received: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'pending') : [],
@@ -323,14 +351,30 @@ const Orders: React.FC = () => {
                 <span className="truncate">View</span>
               </Link>
               
-              {getNextStatus(order.status) && (
-                <button
-                  onClick={() => updateOrderStatus(order.id, getNextStatus(order.status)!)}
-                  className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${getStatusButtonColor(order.status)}`}
-                >
-                  <span className="truncate">{getStatusAction(order.status)}</span>
-                </button>
-              )}
+              {(() => {
+                const nextStatus = getNextStatus(order.status);
+                const isUpdating = updatingOrderIds.has(order.id);
+                return nextStatus && (
+                  <button
+                    onClick={() => updateOrderStatus(order.id, nextStatus)}
+                    disabled={isUpdating}
+                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${
+                      isUpdating 
+                        ? 'bg-gray-400 text-white cursor-not-allowed'
+                        : getStatusButtonColor(order.status)
+                    }`}
+                  >
+                    {isUpdating ? (
+                      <span className="flex items-center justify-center">
+                        <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                        <span className="truncate">Updating...</span>
+                      </span>
+                    ) : (
+                      <span className="truncate">{getStatusAction(order.status)}</span>
+                    )}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         ))}

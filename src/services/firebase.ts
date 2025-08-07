@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getMessaging, Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,15 +15,3 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(app);
 export const db: Firestore = getFirestore(app);
-
-let messaging: Messaging | null = null;
-
-export const getFirebaseMessaging = (): Messaging | null => {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    if (!messaging) {
-      messaging = getMessaging(app);
-    }
-    return messaging;
-  }
-  return null;
-};

@@ -19,19 +19,45 @@ const Settings: React.FC = () => {
   const { user } = useAuth();
   const { 
     permission, 
-    token, 
+    userId, 
     requestPermission, 
     soundEnabled, 
     toggleSound 
   } = useNotifications();
 
-  const [settings, setSettings] = useState({
-    soundEnabled: soundEnabled,
-    notificationVolume: 0.5,
-    showOrderNotifications: true,
-    showStatusUpdateNotifications: true,
-    autoRefreshInterval: 30,
-  });
+  // Load existing settings from localStorage
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('app_settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        return {
+          soundEnabled: soundEnabled,
+          notificationVolume: parsed.notificationVolume || 0.5,
+          showOrderNotifications: parsed.showOrderNotifications ?? true,
+          showStatusUpdateNotifications: parsed.showStatusUpdateNotifications ?? true,
+          autoRefreshInterval: parsed.autoRefreshInterval ?? 30,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to parse saved settings:', error);
+    }
+    // Return default settings if no saved settings found
+    return {
+      soundEnabled: soundEnabled,
+      notificationVolume: 0.5,
+      showOrderNotifications: true,
+      showStatusUpdateNotifications: true,
+      autoRefreshInterval: 30,
+    };
+  };
+
+  const [settings, setSettings] = useState(loadSettings());
+
+  // Sync sound enabled state when it changes from the hook
+  React.useEffect(() => {
+    setSettings(prev => ({ ...prev, soundEnabled }));
+  }, [soundEnabled]);
 
   const handleSoundToggle = () => {
     const newSoundEnabled = !settings.soundEnabled;
@@ -156,15 +182,15 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            {/* FCM Token Info */}
-            {token && (
+            {/* OneSignal User ID Info */}
+            {userId && (
               <div className="p-3 bg-blue-50 rounded-md">
                 <div className="flex items-center mb-2">
                   <Smartphone className="h-4 w-4 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-900">Device Token</span>
+                  <span className="text-sm font-medium text-blue-900">OneSignal User ID</span>
                 </div>
                 <div className="text-xs text-blue-700 font-mono bg-blue-100 p-2 rounded break-all">
-                  {token.substring(0, 50)}...
+                  {userId.substring(0, 50)}...
                 </div>
               </div>
             )}

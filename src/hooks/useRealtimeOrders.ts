@@ -70,22 +70,15 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
       setError(null);
       const fetchedOrders = await apiService.getOrders();
       
-      // Handle API response structure: { success: true, data: { orders: [...], count: ... } }
-      let ordersArray: Order[] = [];
-      if (fetchedOrders && typeof fetchedOrders === 'object') {
-        const response = fetchedOrders as any;
-        if (response.success && response.data) {
-          if (Array.isArray(response.data.orders)) {
-            ordersArray = response.data.orders;
-          } else if (Array.isArray(response.data)) {
-            ordersArray = response.data;
-          }
-        }
-      } else if (Array.isArray(fetchedOrders)) {
-        ordersArray = fetchedOrders;
+      // The API service now handles response structure parsing and normalization
+      // We should receive a clean array of Order objects
+      if (Array.isArray(fetchedOrders)) {
+        console.log(`Hook: Successfully loaded ${fetchedOrders.length} orders`);
+        setOrders(fetchedOrders);
+      } else {
+        console.warn('Hook: Expected orders array but got:', typeof fetchedOrders, fetchedOrders);
+        setOrders([]);
       }
-      
-      setOrders(ordersArray);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
       setError('Failed to fetch orders');
@@ -97,22 +90,42 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
 
   // Update order status via API
   const updateOrderStatus = useCallback(async (orderId: string, status: OrderStatus) => {
+    console.log(`Hook: Starting update for order ${orderId} to ${status}`);
+    
     try {
-      await apiService.updateOrderStatus(orderId, status);
+      const updatedOrder = await apiService.updateOrderStatus(orderId, status);
+      console.log(`Hook: API call successful for order ${orderId}`, updatedOrder);
       
-      // Optimistically update local state
+      // Update local state with the response from API (more reliable than optimistic update)
       setOrders(prev => 
         prev.map(order => 
           order.id === orderId 
-            ? { ...order, status, updated_at: new Date() }
+            ? { ...order, ...updatedOrder, status, updated_at: new Date() }
             : order
         )
       );
       
       toast.success(`Order status updated to ${status}`);
+      console.log(`Hook: Successfully updated order ${orderId} to ${status}`);
     } catch (err) {
-      console.error('Failed to update order status:', err);
-      toast.error('Failed to update order status');
+      console.error('Hook: Failed to update order status:', err);
+      
+      // More detailed error logging
+      if (err instanceof Error) {
+        console.error('Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
+      }
+      
+      // Check if it's a specific API error
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        toast.error(`Failed to update order: ${err.message}`);
+      } else {
+        toast.error('Failed to update order status');
+      }
+      
       throw err;
     }
   }, []);
