@@ -176,13 +176,19 @@ class ApiService {
     
     // Handle different API response structures
     if (Array.isArray(result)) {
-      return this.normalizeOrders(result);
-    } else if (result && result.data && Array.isArray(result.data.orders)) {
-      return this.normalizeOrders(result.data.orders);
+      const normalized = this.normalizeOrders(result);
+      console.log(`API: Fetched ${normalized.length} orders (direct array)`);
+      return normalized;
+    } else if (result && result.success && result.data && Array.isArray(result.data.orders)) {
+      const normalized = this.normalizeOrders(result.data.orders);
+      console.log(`API: Fetched ${normalized.length} orders from success.data.orders structure`);
+      return normalized;
     } else if (result && result.data && Array.isArray(result.data)) {
-      return this.normalizeOrders(result.data);
+      const normalized = this.normalizeOrders(result.data);
+      console.log(`API: Fetched ${normalized.length} orders from data array structure`);
+      return normalized;
     } else {
-      console.warn('Unexpected orders API response structure:', result);
+      console.warn('API: Unexpected orders response structure:', result);
       return [];
     }
   }

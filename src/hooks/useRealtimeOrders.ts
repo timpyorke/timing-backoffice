@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Order, OrderStatus, normalizeOrderStatus } from '@/types';
+import { Order, OrderStatus } from '@/types';
 import { timingWebSocket, WebSocketCallbacks } from '@/services/websocket';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
@@ -70,30 +70,15 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
       setError(null);
       const fetchedOrders = await apiService.getOrders();
       
-      // Handle API response structure: { success: true, data: { orders: [...], count: ... } }
-      // The API service now handles normalization, but we'll keep this as a fallback
-      let ordersArray: Order[] = [];
-      if (fetchedOrders && typeof fetchedOrders === 'object') {
-        const response = fetchedOrders as any;
-        if (response.success && response.data) {
-          if (Array.isArray(response.data.orders)) {
-            ordersArray = response.data.orders;
-          } else if (Array.isArray(response.data)) {
-            ordersArray = response.data;
-          }
-        }
-      } else if (Array.isArray(fetchedOrders)) {
-        ordersArray = fetchedOrders;
+      // The API service now handles response structure parsing and normalization
+      // We should receive a clean array of Order objects
+      if (Array.isArray(fetchedOrders)) {
+        console.log(`Hook: Successfully loaded ${fetchedOrders.length} orders`);
+        setOrders(fetchedOrders);
+      } else {
+        console.warn('Hook: Expected orders array but got:', typeof fetchedOrders, fetchedOrders);
+        setOrders([]);
       }
-      
-      // Ensure all orders have normalized status (defense in depth)
-      const normalizedOrders = ordersArray.map(order => ({
-        ...order,
-        status: normalizeOrderStatus(order.status)
-      }));
-      
-      console.log('Hook: Fetched and normalized orders:', normalizedOrders);
-      setOrders(normalizedOrders);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
       setError('Failed to fetch orders');

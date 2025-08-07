@@ -169,10 +169,15 @@ const Orders: React.FC = () => {
     }
   };
 
+  // Debug logging for order display issues
+  console.log(`Orders Component: Loaded ${orders?.length || 0} orders, filtering by "${statusFilter}"`);
+
   const filteredOrders = Array.isArray(orders) ? orders.filter(order => {
     if (statusFilter === 'all') return true;
     return order.status === statusFilter;
   }) : [];
+
+  console.log(`Orders Component: Displaying ${filteredOrders.length} orders after filtering`);
 
   const ordersByStatus = {
     received: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'pending') : [],
