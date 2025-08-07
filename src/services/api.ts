@@ -1,10 +1,23 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus } from '@/types';
 import { auth } from '@/services/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 class ApiService {
   private refreshTokenPromise: Promise<string> | null = null;
+
+  // Helper function to normalize order data from API response
+  private normalizeOrder(order: any): Order {
+    return {
+      ...order,
+      status: normalizeOrderStatus(order.status)
+    };
+  }
+
+  // Helper function to normalize array of orders
+  private normalizeOrders(orders: any[]): Order[] {
+    return orders.map(order => this.normalizeOrder(order));
+  }
 
   private async getHeaders(): Promise<HeadersInit> {
     const token = await this.getValidToken();
@@ -159,20 +172,34 @@ class ApiService {
     const queryString = params.toString();
     const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`;
     
-    return this.request(endpoint);
+    const result = await this.request<any>(endpoint);
+    
+    // Handle different API response structures
+    if (Array.isArray(result)) {
+      return this.normalizeOrders(result);
+    } else if (result && result.data && Array.isArray(result.data.orders)) {
+      return this.normalizeOrders(result.data.orders);
+    } else if (result && result.data && Array.isArray(result.data)) {
+      return this.normalizeOrders(result.data);
+    } else {
+      console.warn('Unexpected orders API response structure:', result);
+      return [];
+    }
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
     console.log(`API: Updating order ${orderId} to status ${status}`);
     
     try {
-      const result = await this.request<Order>(`/admin/orders/${orderId}/status`, {
+      const result = await this.request<any>(`/admin/orders/${orderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
       
-      console.log(`API: Successfully updated order ${orderId}:`, result);
-      return result;
+      console.log(`API: Raw response for order ${orderId}:`, result);
+      const normalizedOrder = this.normalizeOrder(result);
+      console.log(`API: Normalized order ${orderId}:`, normalizedOrder);
+      return normalizedOrder;
     } catch (error) {
       console.error(`API: Failed to update order ${orderId}:`, error);
       throw error;
@@ -214,7 +241,8 @@ class ApiService {
 
 
   async getOrder(orderId: string): Promise<Order> {
-    return this.request(`/admin/orders/${orderId}`);
+    const result = await this.request<any>(`/admin/orders/${orderId}`);
+    return this.normalizeOrder(result);
   }
 
   async deleteOrder(orderId: string): Promise<void> {

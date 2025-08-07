@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, normalizeOrderStatus } from '@/types';
 import { timingWebSocket, WebSocketCallbacks } from '@/services/websocket';
 import { apiService } from '@/services/api';
 import { toast } from 'sonner';
@@ -71,6 +71,7 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
       const fetchedOrders = await apiService.getOrders();
       
       // Handle API response structure: { success: true, data: { orders: [...], count: ... } }
+      // The API service now handles normalization, but we'll keep this as a fallback
       let ordersArray: Order[] = [];
       if (fetchedOrders && typeof fetchedOrders === 'object') {
         const response = fetchedOrders as any;
@@ -85,7 +86,14 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
         ordersArray = fetchedOrders;
       }
       
-      setOrders(ordersArray);
+      // Ensure all orders have normalized status (defense in depth)
+      const normalizedOrders = ordersArray.map(order => ({
+        ...order,
+        status: normalizeOrderStatus(order.status)
+      }));
+      
+      console.log('Hook: Fetched and normalized orders:', normalizedOrders);
+      setOrders(normalizedOrders);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
       setError('Failed to fetch orders');
