@@ -10,7 +10,13 @@ class ApiService {
   private normalizeOrder(order: any): Order {
     return {
       ...order,
-      status: normalizeOrderStatus(order.status)
+      id: order.id ? String(order.id) : order.id,
+      total: typeof order.total === 'string' ? parseFloat(order.total) : order.total,
+      status: normalizeOrderStatus(order.status),
+      items: (order.items || []).map((item: any) => ({
+        ...item,
+        price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+      }))
     };
   }
 
@@ -248,6 +254,12 @@ class ApiService {
 
   async getOrder(orderId: string): Promise<Order> {
     const result = await this.request<any>(`/admin/orders/${orderId}`);
+    
+    // Handle new API response structure: { success: true, data: Order }
+    if (result && result.success && result.data) {
+      return this.normalizeOrder(result.data);
+    }
+    
     return this.normalizeOrder(result);
   }
 

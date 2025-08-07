@@ -5,6 +5,7 @@ export interface Order {
     email?: string;
     phone: string;
   };
+  customer_id?: string;
   items: OrderItem[];
   status: OrderStatus;
   total: number;
@@ -12,16 +13,24 @@ export interface Order {
   updated_at: Date | string;
   estimatedTime?: number;
   specialInstructions?: string;
+  notes?: string | null;
 }
 
 export interface OrderItem {
+  id?: number;
   menu_id: number;
   menu_name: string;
+  menu_description?: string | null;
+  menu_description_th?: string | null;
+  image_url?: string;
   quantity: number;
   price: number;
   customizations?: {
     size?: string;
+    milk?: string;
     extras?: string[];
+    sweetness?: string;
+    temperature?: string;
     [key: string]: any;
   };
 }
