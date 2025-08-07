@@ -309,17 +309,20 @@ const OrderDetails: React.FC = () => {
               </div>
             </div>
 
-            {getNextStatus(order.status) && (
-              <div className="mt-6">
-                <button
-                  onClick={() => updateOrderStatus(getNextStatus(order.status)!)}
-                  disabled={updating}
-                  className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(order.status)}`}
-                >
-                  {updating ? 'Updating...' : getStatusAction(order.status)}
-                </button>
-              </div>
-            )}
+            {(() => {
+              const nextStatus = getNextStatus(order.status);
+              return nextStatus && (
+                <div className="mt-6">
+                  <button
+                    onClick={() => updateOrderStatus(nextStatus)}
+                    disabled={updating}
+                    className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(order.status)}`}
+                  >
+                    {updating ? 'Updating...' : getStatusAction(order.status)}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Order Items */}

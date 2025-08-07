@@ -163,10 +163,20 @@ class ApiService {
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    return this.request(`/admin/orders/${orderId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
-    });
+    console.log(`API: Updating order ${orderId} to status ${status}`);
+    
+    try {
+      const result = await this.request<Order>(`/admin/orders/${orderId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+      
+      console.log(`API: Successfully updated order ${orderId}:`, result);
+      return result;
+    } catch (error) {
+      console.error(`API: Failed to update order ${orderId}:`, error);
+      throw error;
+    }
   }
 
   async getMenuItems(): Promise<MenuItem[]> {

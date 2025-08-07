@@ -97,22 +97,42 @@ export const useRealtimeOrders = (options: UseRealtimeOrdersOptions = {}): UseRe
 
   // Update order status via API
   const updateOrderStatus = useCallback(async (orderId: string, status: OrderStatus) => {
+    console.log(`Hook: Starting update for order ${orderId} to ${status}`);
+    
     try {
-      await apiService.updateOrderStatus(orderId, status);
+      const updatedOrder = await apiService.updateOrderStatus(orderId, status);
+      console.log(`Hook: API call successful for order ${orderId}`, updatedOrder);
       
-      // Optimistically update local state
+      // Update local state with the response from API (more reliable than optimistic update)
       setOrders(prev => 
         prev.map(order => 
           order.id === orderId 
-            ? { ...order, status, updated_at: new Date() }
+            ? { ...order, ...updatedOrder, status, updated_at: new Date() }
             : order
         )
       );
       
       toast.success(`Order status updated to ${status}`);
+      console.log(`Hook: Successfully updated order ${orderId} to ${status}`);
     } catch (err) {
-      console.error('Failed to update order status:', err);
-      toast.error('Failed to update order status');
+      console.error('Hook: Failed to update order status:', err);
+      
+      // More detailed error logging
+      if (err instanceof Error) {
+        console.error('Error details:', {
+          message: err.message,
+          name: err.name,
+          stack: err.stack
+        });
+      }
+      
+      // Check if it's a specific API error
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        toast.error(`Failed to update order: ${err.message}`);
+      } else {
+        toast.error('Failed to update order status');
+      }
+      
       throw err;
     }
   }, []);
