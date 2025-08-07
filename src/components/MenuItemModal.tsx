@@ -29,7 +29,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     category_th: '',
     image_url: '',
     active: true,
-    customizations: {} as { [key: string]: string[] }
+    customizations: {} as { [id: string]: { name: string; options: string[] } }
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -50,7 +50,10 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         image_url: item.image_url || '',
         active: item.active,
         customizations: Object.fromEntries(
-          Object.entries(item.customizations || {}).map(([k, v]) => [k, v ?? []])
+          Object.entries(item.customizations || {}).map(([k, v], index) => [
+            `customization_${index}_${k}`, 
+            { name: k, options: v ?? [] }
+          ])
         )
       });
       setImagePreview(item.image_url || '');
@@ -110,11 +113,19 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
         imageUrl = await uploadImageToSupabase();
       }
 
+      // Convert customizations back to the expected API format
+      const apiCustomizations = Object.fromEntries(
+        Object.values(formData.customizations)
+          .filter(custom => custom.name.trim()) // Only include customizations with names
+          .map(custom => [custom.name, custom.options.filter(opt => opt.trim())]) // Filter out empty options
+      );
+
       const itemData = {
         ...formData,
         image: imageUrl,
         image_url: imageUrl,
-        base_price: Number(formData.base_price)
+        base_price: Number(formData.base_price),
+        customizations: apiCustomizations
       };
 
       onSave(itemData);
@@ -126,27 +137,31 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
   };
 
   const addCustomization = () => {
-    const customizationName = `customization_${Date.now()}`;
+    const customizationId = `customization_${Date.now()}`;
+    const customizationName = '';
     setFormData(prev => ({
       ...prev,
       customizations: {
         ...prev.customizations,
-        [customizationName]: ['']
+        [customizationId]: {
+          name: customizationName,
+          options: ['']
+        }
       }
     }));
   };
 
-  const updateCustomizationKey = (oldKey: string, newKey: string) => {
-    if (oldKey === newKey) return;
-    setFormData(prev => {
-      const newCustomizations = { ...prev.customizations };
-      newCustomizations[newKey] = newCustomizations[oldKey];
-      delete newCustomizations[oldKey];
-      return {
-        ...prev,
-        customizations: newCustomizations
-      };
-    });
+  const updateCustomizationName = (customId: string, newName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      customizations: {
+        ...prev.customizations,
+        [customId]: {
+          ...prev.customizations[customId],
+          name: newName
+        }
+      }
+    }));
   };
 
   const removeCustomization = (key: string) => {
@@ -160,34 +175,43 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
     });
   };
 
-  const addOption = (customKey: string) => {
+  const addOption = (customId: string) => {
     setFormData(prev => ({
       ...prev,
       customizations: {
         ...prev.customizations,
-        [customKey]: [...(prev.customizations[customKey] || []), '']
+        [customId]: {
+          ...prev.customizations[customId],
+          options: [...(prev.customizations[customId]?.options || []), '']
+        }
       }
     }));
   };
 
-  const updateOption = (customKey: string, optionIndex: number, value: string) => {
+  const updateOption = (customId: string, optionIndex: number, value: string) => {
     setFormData(prev => ({
       ...prev,
       customizations: {
         ...prev.customizations,
-        [customKey]: prev.customizations[customKey].map((opt, j) => 
-          j === optionIndex ? value : opt
-        )
+        [customId]: {
+          ...prev.customizations[customId],
+          options: prev.customizations[customId].options.map((opt, j) => 
+            j === optionIndex ? value : opt
+          )
+        }
       }
     }));
   };
 
-  const removeOption = (customKey: string, optionIndex: number) => {
+  const removeOption = (customId: string, optionIndex: number) => {
     setFormData(prev => ({
       ...prev,
       customizations: {
         ...prev.customizations,
-        [customKey]: prev.customizations[customKey].filter((_, j) => j !== optionIndex)
+        [customId]: {
+          ...prev.customizations[customId],
+          options: prev.customizations[customId].options.filter((_, j) => j !== optionIndex)
+        }
       }
     }));
   };
@@ -418,14 +442,14 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    {Object.entries(formData.customizations).map(([key, options]) => (
-                      <div key={key} className="border rounded-md p-3">
+                    {Object.entries(formData.customizations).map(([customId, customData]) => (
+                      <div key={customId} className="border rounded-md p-3">
                         <div className="grid grid-cols-1 gap-3 mb-3">
                           <input
                             type="text"
                             placeholder={t('menuForm.customizationPlaceholder')}
-                            value={key}
-                            onChange={(e) => updateCustomizationKey(key, e.target.value)}
+                            value={customData.name}
+                            onChange={(e) => updateCustomizationName(customId, e.target.value)}
                             className="input text-sm"
                           />
                         </div>
@@ -435,25 +459,25 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                             <span className="text-xs text-gray-600">{t('menuForm.options')}</span>
                             <button
                               type="button"
-                              onClick={() => addOption(key)}
+                              onClick={() => addOption(customId)}
                               className="text-xs text-primary-600 hover:text-primary-800"
                             >
                               {t('menuForm.addOption')}
                             </button>
                           </div>
                           <div className="space-y-1">
-                            {options.map((option, optionIndex) => (
+                            {customData.options.map((option, optionIndex) => (
                               <div key={optionIndex} className="flex items-center space-x-2">
                                 <input
                                   type="text"
                                   placeholder={t('menuForm.optionPlaceholder')}
                                   value={option}
-                                  onChange={(e) => updateOption(key, optionIndex, e.target.value)}
+                                  onChange={(e) => updateOption(customId, optionIndex, e.target.value)}
                                   className="input text-xs flex-1"
                                 />
                                 <button
                                   type="button"
-                                  onClick={() => removeOption(key, optionIndex)}
+                                  onClick={() => removeOption(customId, optionIndex)}
                                   className="p-1 text-red-500 hover:text-red-700"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -466,7 +490,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                         <div className="flex justify-end mt-2">
                           <button
                             type="button"
-                            onClick={() => removeCustomization(key)}
+                            onClick={() => removeCustomization(customId)}
                             className="text-red-500 hover:text-red-700 text-xs flex items-center space-x-1"
                           >
                             <Trash2 className="h-3 w-3" />
