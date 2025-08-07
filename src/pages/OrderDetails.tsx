@@ -53,21 +53,8 @@ const OrderDetails: React.FC = () => {
       if (!id) return;
       
       try {
-        const response = await apiService.getOrder(id);
-        console.log('Order API Response:', response); // Debug log
-        
-        // Handle API response structure: { success: true, data: Order }
-        let fetchedOrder: Order;
-        if (response && typeof response === 'object') {
-          const apiResponse = response as any;
-          if (apiResponse.success && apiResponse.data) {
-            fetchedOrder = apiResponse.data;
-          } else {
-            fetchedOrder = response as Order;
-          }
-        } else {
-          throw new Error('Invalid response structure');
-        }
+        const fetchedOrder = await apiService.getOrder(id);
+        console.log('Order API Response:', fetchedOrder); // Debug log
         
         setOrder(fetchedOrder);
 
@@ -339,13 +326,16 @@ const OrderDetails: React.FC = () => {
                       </h3>
                       {item.customizations && Object.keys(item.customizations).length > 0 && (
                         <div className="mt-1 space-y-1">
-                          {Object.entries(item.customizations).map(([key, values]) => (
-                            values && values.length > 0 && (
-                              <p key={key} className="text-sm text-gray-600">
-                                {key}: {Array.isArray(values) ? values.join(', ') : values}
+                          {Object.entries(item.customizations).map(([key, values]) => {
+                            // Skip empty values
+                            if (!values || (Array.isArray(values) && values.length === 0) || values === '') return null;
+                            
+                            return (
+                              <p key={key} className="text-sm text-gray-600 capitalize">
+                                <span className="font-medium">{key}:</span> {Array.isArray(values) ? values.join(', ') : values}
                               </p>
-                            )
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -366,11 +356,24 @@ const OrderDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* Special Instructions */}
-          {order.specialInstructions && (
+          {/* Special Instructions and Notes */}
+          {(order.specialInstructions || order.notes) && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Special Instructions</h2>
-              <p className="text-gray-700 bg-gray-50 p-4 rounded-md">{order.specialInstructions}</p>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                {order.specialInstructions ? 'Special Instructions' : 'Notes'}
+              </h2>
+              {order.specialInstructions && (
+                <div className="mb-4">
+                  <h3 className="font-medium text-gray-900 mb-2">Special Instructions:</h3>
+                  <p className="text-gray-700 bg-gray-50 p-4 rounded-md">{order.specialInstructions}</p>
+                </div>
+              )}
+              {order.notes && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-2">Notes:</h3>
+                  <p className="text-gray-700 bg-gray-50 p-4 rounded-md">{order.notes}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
