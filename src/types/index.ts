@@ -36,7 +36,12 @@ export interface Customization {
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
 // Helper function to normalize status from API (which might return capitalized values)
-export function normalizeOrderStatus(status: string): OrderStatus {
+export function normalizeOrderStatus(status: string | undefined | null): OrderStatus {
+  if (!status) {
+    console.warn(`Order status is undefined or null, defaulting to pending`);
+    return 'pending';
+  }
+  
   const normalized = status.toLowerCase() as OrderStatus;
   
   // Map common variations

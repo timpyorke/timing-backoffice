@@ -26,17 +26,16 @@ const Settings: React.FC = () => {
   } = useNotifications();
 
   // Load existing settings from localStorage
-  const loadSettings = () => {
+  const loadSettingsFromStorage = () => {
     try {
       const savedSettings = localStorage.getItem('app_settings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
         return {
-          soundEnabled: soundEnabled,
           notificationVolume: parsed.notificationVolume || 0.5,
           showOrderNotifications: parsed.showOrderNotifications ?? true,
           showStatusUpdateNotifications: parsed.showStatusUpdateNotifications ?? true,
-          autoRefreshInterval: parsed.autoRefreshInterval ?? 30,
+          autoRefreshInterval: Number(parsed.autoRefreshInterval ?? 30),
         };
       }
     } catch (error) {
@@ -44,7 +43,6 @@ const Settings: React.FC = () => {
     }
     // Return default settings if no saved settings found
     return {
-      soundEnabled: soundEnabled,
       notificationVolume: 0.5,
       showOrderNotifications: true,
       showStatusUpdateNotifications: true,
@@ -52,12 +50,30 @@ const Settings: React.FC = () => {
     };
   };
 
-  const [settings, setSettings] = useState(loadSettings());
+  const [settings, setSettings] = useState(() => ({
+    ...loadSettingsFromStorage(),
+    soundEnabled: soundEnabled
+  }));
 
   // Sync sound enabled state when it changes from the hook
   React.useEffect(() => {
     setSettings(prev => ({ ...prev, soundEnabled }));
   }, [soundEnabled]);
+
+  // Load settings on component mount and when needed
+  React.useEffect(() => {
+    const storedSettings = loadSettingsFromStorage();
+    console.log('Loading settings from storage:', storedSettings);
+    setSettings(prev => ({
+      ...prev,
+      ...storedSettings
+    }));
+  }, []);
+
+  // Debug: Log settings changes
+  React.useEffect(() => {
+    console.log('Settings state updated:', settings);
+  }, [settings]);
 
   const handleSoundToggle = () => {
     const newSoundEnabled = !settings.soundEnabled;
@@ -81,7 +97,9 @@ const Settings: React.FC = () => {
   };
 
   const handleSaveSettings = () => {
-    // In a real app, you would save these settings to a backend or local storage
+    console.log('Saving settings:', settings);
+    
+    // Save settings to localStorage
     localStorage.setItem('app_settings', JSON.stringify(settings));
     
     // Trigger a custom event to notify other components
@@ -90,6 +108,10 @@ const Settings: React.FC = () => {
     }));
     
     toast.success('Settings saved successfully');
+    
+    // Verify settings were saved correctly
+    const savedSettings = localStorage.getItem('app_settings');
+    console.log('Settings saved to localStorage:', savedSettings);
   };
 
   const getNotificationStatus = () => {
@@ -275,11 +297,15 @@ const Settings: React.FC = () => {
                 Auto Refresh Interval (seconds)
               </label>
               <select
-                value={settings.autoRefreshInterval}
-                onChange={(e) => setSettings(prev => ({ 
-                  ...prev, 
-                  autoRefreshInterval: parseInt(e.target.value) 
-                }))}
+                value={settings.autoRefreshInterval.toString()}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value, 10);
+                  console.log('Auto refresh interval changed from', settings.autoRefreshInterval, 'to:', newValue);
+                  setSettings(prev => ({ 
+                    ...prev, 
+                    autoRefreshInterval: newValue
+                  }));
+                }}
                 className="input"
               >
                 <option value={15}>15 seconds</option>
@@ -288,6 +314,9 @@ const Settings: React.FC = () => {
                 <option value={300}>5 minutes</option>
                 <option value={0}>Disabled</option>
               </select>
+              <div className="text-xs text-gray-500 mt-1">
+                Current value: {settings.autoRefreshInterval}
+              </div>
             </div>
 
             <div>
