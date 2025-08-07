@@ -103,10 +103,16 @@ export interface CustomizationOption {
 
 export interface DailySales {
   date: string;
-  totalOrders: number;
-  totalRevenue: number;
-  averageOrderValue: number;
-  topItems: {
+  total_orders: number;
+  total_revenue: number;
+  completed_orders: number;
+  pending_orders: number;
+  completion_rate: string;
+  // Legacy fields for backward compatibility
+  totalOrders?: number;
+  totalRevenue?: number;
+  averageOrderValue?: number;
+  topItems?: {
     name: string;
     quantity: number;
     revenue: number;

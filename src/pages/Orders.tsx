@@ -299,6 +299,17 @@ const Orders: React.FC = () => {
                   Order #{String(order.id).slice(-6)}
                 </h3>
                 <p className="text-sm text-gray-600">{order.customer_info.name}</p>
+                {order.customer_info.phone && (
+                  <p className="text-xs text-gray-500 flex items-center mt-1">
+                    <Phone className="h-3 w-3 mr-1" />
+                    <a 
+                      href={`tel:${order.customer_info.phone}`}
+                      className="hover:text-primary-600 underline"
+                    >
+                      {order.customer_info.phone}
+                    </a>
+                  </p>
+                )}
               </div>
               <div className="flex items-center space-x-2">
                 <OrderStatusBadge status={order.status} />
@@ -330,17 +341,6 @@ const Orders: React.FC = () => {
               </span>
             </div>
 
-            {order.customer_info.phone && (
-              <div className="flex items-center text-sm text-gray-600 mb-4">
-                <Phone className="h-4 w-4 mr-2" />
-                <a 
-                  href={`tel:${order.customer_info.phone}`}
-                  className="hover:text-primary-600 underline"
-                >
-                  {order.customer_info.phone}
-                </a>
-              </div>
-            )}
 
             <div className="flex space-x-2 min-h-[2.5rem] mt-auto">
               <Link
