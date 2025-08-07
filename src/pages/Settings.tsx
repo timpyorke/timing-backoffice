@@ -25,13 +25,39 @@ const Settings: React.FC = () => {
     toggleSound 
   } = useNotifications();
 
-  const [settings, setSettings] = useState({
-    soundEnabled: soundEnabled,
-    notificationVolume: 0.5,
-    showOrderNotifications: true,
-    showStatusUpdateNotifications: true,
-    autoRefreshInterval: 30,
-  });
+  // Load existing settings from localStorage
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('app_settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        return {
+          soundEnabled: soundEnabled,
+          notificationVolume: parsed.notificationVolume || 0.5,
+          showOrderNotifications: parsed.showOrderNotifications ?? true,
+          showStatusUpdateNotifications: parsed.showStatusUpdateNotifications ?? true,
+          autoRefreshInterval: parsed.autoRefreshInterval ?? 30,
+        };
+      }
+    } catch (error) {
+      console.error('Failed to parse saved settings:', error);
+    }
+    // Return default settings if no saved settings found
+    return {
+      soundEnabled: soundEnabled,
+      notificationVolume: 0.5,
+      showOrderNotifications: true,
+      showStatusUpdateNotifications: true,
+      autoRefreshInterval: 30,
+    };
+  };
+
+  const [settings, setSettings] = useState(loadSettings());
+
+  // Sync sound enabled state when it changes from the hook
+  React.useEffect(() => {
+    setSettings(prev => ({ ...prev, soundEnabled }));
+  }, [soundEnabled]);
 
   const handleSoundToggle = () => {
     const newSoundEnabled = !settings.soundEnabled;
