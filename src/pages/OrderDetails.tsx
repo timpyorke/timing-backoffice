@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@/services/api';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, ApiStatusUpdateResponse } from '@/types';
 
-interface ApiUpdateResponse {
-  success: boolean;
-  data: Partial<Order>;
-  message?: string;
+// Type guard to check if response is nested
+function isNestedApiResponse(response: Order | ApiStatusUpdateResponse): response is ApiStatusUpdateResponse {
+  return typeof response === 'object' && 
+         response !== null && 
+         'success' in response && 
+         'data' in response && 
+         typeof (response as ApiStatusUpdateResponse).success === 'boolean';
 }
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
@@ -76,50 +79,24 @@ const OrderDetails: React.FC = () => {
     fetchOrder();
   }, [id, navigate]);
 
-  // Monitor order state changes
-  useEffect(() => {
-    if (order) {
-      console.log('📊 ORDER STATE CHANGED:', {
-        id: order.id,
-        status: order.status,
-        updated_at: order.updated_at,
-        renderKey: renderKey
-      });
-    }
-  }, [order, renderKey]);
 
 
   const updateOrderStatus = async (newStatus: OrderStatus) => {
     if (!order) return;
     
-    console.log('🔄 UPDATE STATUS - BEFORE:', {
-      currentStatus: order.status,
-      requestedStatus: newStatus,
-      orderId: order.id
-    });
-    
     setUpdating(true);
     
     try {
       const apiResponse = await apiService.updateOrderStatus(order.id, newStatus);
-      console.log('📡 API RESPONSE:', apiResponse);
       
-      // Extract data from nested response structure
+      // Extract data from nested response structure using type guard
       // Handle both nested {success, data, message} and direct Order response
-      const isNestedResponse = 'data' in apiResponse && 'success' in apiResponse;
-      const responseData = isNestedResponse 
-        ? (apiResponse as unknown as ApiUpdateResponse).data 
+      const responseData = isNestedApiResponse(apiResponse) 
+        ? apiResponse.data 
         : apiResponse;
-      console.log('📊 RESPONSE DATA:', responseData);
       
       // Use the actual status from API response, not what we requested
       const actualStatus = responseData?.status || newStatus;
-      
-      console.log('💾 CREATING NEW ORDER STATE:', {
-        originalOrder: order,
-        responseData: responseData,
-        actualStatus: actualStatus
-      });
       
       // Create completely new order object to force React re-render
       const newOrderState: Order = {
@@ -139,26 +116,13 @@ const OrderDetails: React.FC = () => {
         ...(responseData?.discount_amount && { discount_amount: responseData.discount_amount })
       };
       
-      console.log('💾 FINAL NEW ORDER STATE:', newOrderState);
-      
       // Set the new order state
       setOrder(newOrderState);
       
-      // Wait a moment for state to update, then force re-render
+      // Force re-render to ensure UI updates
       setTimeout(() => {
         setRenderKey(prev => prev + 1);
-        console.log('🔄 FORCED RE-RENDER:', {
-          oldStatus: order.status,
-          newStatus: actualStatus,
-          renderKey: renderKey + 1
-        });
       }, 50);
-      
-      console.log('✅ UPDATE STATUS - COMPLETE:', {
-        oldStatus: order.status,
-        newStatus: actualStatus,
-        stateSet: true
-      });
       
       toast.success(`Order status updated to ${actualStatus}`);
     } catch (error) {
@@ -402,13 +366,6 @@ const OrderDetails: React.FC = () => {
               const currentStatus = order.status;
               const nextStatus = getNextStatus(currentStatus);
               const buttonText = getStatusAction(currentStatus);
-              
-              console.log('🔘 BUTTON RENDER:', {
-                currentStatus,
-                nextStatus,
-                buttonText,
-                updating
-              });
               
               return nextStatus ? (
                 <div key={`button-${currentStatus}-${renderKey}`} className="mt-6">
