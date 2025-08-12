@@ -3,7 +3,7 @@ export interface Order {
   customer_info: {
     name: string;
     email?: string;
-    phone: string;
+    phone?: string;
   };
   customer_id?: string;
   items: OrderItem[];
@@ -14,6 +14,8 @@ export interface Order {
   estimatedTime?: number;
   specialInstructions?: string;
   notes?: string | null;
+  original_total?: number | string | null;
+  discount_amount?: number | string | null;
 }
 
 export interface OrderItem {

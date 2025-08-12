@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { apiService } from '@/services/api';
 import { Order, OrderStatus } from '@/types';
+
+interface ApiUpdateResponse {
+  success: boolean;
+  data: Partial<Order>;
+  message?: string;
+}
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useMenuItems } from '@/hooks/useMenuItems';
 import { 
   ArrowLeft, 
   Clock, 
@@ -24,24 +29,25 @@ const OrderDetails: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
+  const fetchingRef = useRef(false);
   
-  const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
 
-  const formatDate = (dateInput: any): string => {
+  const formatDate = (dateInput: string | Date | null | undefined): string => {
     if (!dateInput) return t('common.na');
     const date = new Date(dateInput);
     const locale = language === 'th' ? 'th-TH' : 'en-US';
     return isNaN(date.getTime()) ? t('common.na') : date.toLocaleString(locale);
   };
 
-  const formatDateOnly = (dateInput: any): string => {
+  const formatDateOnly = (dateInput: string | Date | null | undefined): string => {
     if (!dateInput) return t('common.na');
     const date = new Date(dateInput);
     const locale = language === 'th' ? 'th-TH' : 'en-US';
     return isNaN(date.getTime()) ? t('common.na') : date.toLocaleDateString(locale);
   };
 
-  const formatTimeOnly = (dateInput: any): string => {
+  const formatTimeOnly = (dateInput: string | Date | null | undefined): string => {
     if (!dateInput) return t('common.na');
     const date = new Date(dateInput);
     const locale = language === 'th' ? 'th-TH' : 'en-US';
@@ -50,43 +56,111 @@ const OrderDetails: React.FC = () => {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!id) return;
+      if (!id || fetchingRef.current) return;
+      
+      fetchingRef.current = true;
       
       try {
         const fetchedOrder = await apiService.getOrder(id);
-        console.log('Order API Response:', fetchedOrder); // Debug log
-        
         setOrder(fetchedOrder);
-
-        // Preload menu items for all items in this order
-        // Handle both menu_id for backward compatibility
-        const menuIds = (fetchedOrder.items || [])
-          .map(item => item.menu_id)
-          .filter(Boolean);
-        console.log('OrderDetails: Extracted menu IDs:', menuIds);
-        if (menuIds.length > 0) {
-          preloadMenuItems(menuIds);
-        }
       } catch (error) {
         console.error('Failed to fetch order:', error);
         toast.error('Failed to load order details');
         navigate('/orders');
       } finally {
         setLoading(false);
+        fetchingRef.current = false;
       }
     };
 
     fetchOrder();
   }, [id, navigate]);
 
+  // Monitor order state changes
+  useEffect(() => {
+    if (order) {
+      console.log('📊 ORDER STATE CHANGED:', {
+        id: order.id,
+        status: order.status,
+        updated_at: order.updated_at,
+        renderKey: renderKey
+      });
+    }
+  }, [order, renderKey]);
+
+
   const updateOrderStatus = async (newStatus: OrderStatus) => {
     if (!order) return;
     
+    console.log('🔄 UPDATE STATUS - BEFORE:', {
+      currentStatus: order.status,
+      requestedStatus: newStatus,
+      orderId: order.id
+    });
+    
     setUpdating(true);
+    
     try {
-      const updatedOrder = await apiService.updateOrderStatus(order.id, newStatus);
-      setOrder(updatedOrder);
-      toast.success(`Order status updated to ${newStatus}`);
+      const apiResponse = await apiService.updateOrderStatus(order.id, newStatus);
+      console.log('📡 API RESPONSE:', apiResponse);
+      
+      // Extract data from nested response structure
+      // Handle both nested {success, data, message} and direct Order response
+      const isNestedResponse = 'data' in apiResponse && 'success' in apiResponse;
+      const responseData = isNestedResponse 
+        ? (apiResponse as unknown as ApiUpdateResponse).data 
+        : apiResponse;
+      console.log('📊 RESPONSE DATA:', responseData);
+      
+      // Use the actual status from API response, not what we requested
+      const actualStatus = responseData?.status || newStatus;
+      
+      console.log('💾 CREATING NEW ORDER STATE:', {
+        originalOrder: order,
+        responseData: responseData,
+        actualStatus: actualStatus
+      });
+      
+      // Create completely new order object to force React re-render
+      const newOrderState: Order = {
+        id: String(responseData?.id || order.id),
+        customer_info: responseData?.customer_info || order.customer_info,
+        items: order.items, // Keep existing items since API doesn't return them
+        total: responseData?.total ? Number(responseData.total) : order.total,
+        status: actualStatus, // Use the actual status from API
+        created_at: responseData?.created_at || order.created_at,
+        updated_at: responseData?.updated_at || new Date().toISOString(),
+        // Copy any other existing fields, update with API response if available
+        ...(order.specialInstructions && { specialInstructions: order.specialInstructions }),
+        ...(responseData?.notes && { notes: responseData.notes }),
+        ...(order.estimatedTime && { estimatedTime: order.estimatedTime }),
+        ...(responseData?.customer_id && { customer_id: responseData.customer_id }),
+        ...(responseData?.original_total && { original_total: responseData.original_total }),
+        ...(responseData?.discount_amount && { discount_amount: responseData.discount_amount })
+      };
+      
+      console.log('💾 FINAL NEW ORDER STATE:', newOrderState);
+      
+      // Set the new order state
+      setOrder(newOrderState);
+      
+      // Wait a moment for state to update, then force re-render
+      setTimeout(() => {
+        setRenderKey(prev => prev + 1);
+        console.log('🔄 FORCED RE-RENDER:', {
+          oldStatus: order.status,
+          newStatus: actualStatus,
+          renderKey: renderKey + 1
+        });
+      }, 50);
+      
+      console.log('✅ UPDATE STATUS - COMPLETE:', {
+        oldStatus: order.status,
+        newStatus: actualStatus,
+        stateSet: true
+      });
+      
+      toast.success(`Order status updated to ${actualStatus}`);
     } catch (error) {
       console.error('Failed to update order status:', error);
       toast.error('Failed to update order status');
@@ -136,7 +210,7 @@ const OrderDetails: React.FC = () => {
             const menuId = item.menu_id;
             return `
             <div class="item">
-              <span>${item.quantity}x ${item.menu_name || getMenuItemNameSync(menuId)}</span>
+              <span>${item.quantity}x ${item.menu_name || `Menu Item #${menuId}`}</span>
               <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
             ${item.customizations && Object.keys(item.customizations).length > 0 ? 
@@ -159,7 +233,7 @@ const OrderDetails: React.FC = () => {
         <div class="total">
           <div class="item">
             <span>Total Amount:</span>
-            <span>฿${Number(order.total).toFixed(2)}</span>
+            <span>฿${getDisplayTotal().toFixed(2)}</span>
           </div>
         </div>
         
@@ -171,8 +245,10 @@ const OrderDetails: React.FC = () => {
       </html>
     `;
 
-    printWindow.document.write(printContent);
+    // Create a clean document structure
+    printWindow.document.open();
     printWindow.document.close();
+    printWindow.document.body.innerHTML = printContent;
     printWindow.focus();
     printWindow.print();
   };
@@ -222,6 +298,31 @@ const OrderDetails: React.FC = () => {
       case 'ready': return 'bg-green-600 hover:bg-green-700 text-white';
       default: return 'bg-gray-600 hover:bg-gray-700 text-white';
     }
+  };
+
+  const isStatusCompleted = (currentStatus: OrderStatus, targetStatus: OrderStatus): boolean => {
+    const statusOrder = ['pending', 'preparing', 'ready', 'completed'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const targetIndex = statusOrder.indexOf(targetStatus);
+    return currentIndex >= targetIndex;
+  };
+
+  // Calculate total from items if total is missing or incorrect
+  const getDisplayTotal = (): number => {
+    if (order?.total && Number(order.total) > 0) {
+      return Number(order.total);
+    }
+    
+    // Fallback: calculate from items
+    if (order?.items && Array.isArray(order.items)) {
+      return order.items.reduce((sum, item) => {
+        const price = Number(item.price || 0);
+        const quantity = Number(item.quantity || 0);
+        return sum + (price * quantity);
+      }, 0);
+    }
+    
+    return 0;
   };
 
   if (loading) {
@@ -275,40 +376,61 @@ const OrderDetails: React.FC = () => {
             
             {/* Status Timeline */}
             <div className="space-y-3">
-              <div className={`flex items-center ${order.status === 'pending' || order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${isStatusCompleted(order.status, 'pending') ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle className="h-4 w-4 mr-3" />
                 <span className="text-sm">Order Received</span>
                 <span className="ml-auto text-xs text-gray-500">
                   {formatDate(order.created_at)}
                 </span>
               </div>
-              <div className={`flex items-center ${order.status === 'preparing' || order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${isStatusCompleted(order.status, 'preparing') ? 'text-green-600' : 'text-gray-400'}`}>
                 <Clock className="h-4 w-4 mr-3" />
                 <span className="text-sm">Preparing</span>
               </div>
-              <div className={`flex items-center ${order.status === 'ready' || order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${isStatusCompleted(order.status, 'ready') ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle className="h-4 w-4 mr-3" />
                 <span className="text-sm">Ready for Pickup</span>
               </div>
-              <div className={`flex items-center ${order.status === 'completed' ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${isStatusCompleted(order.status, 'completed') ? 'text-green-600' : 'text-gray-400'}`}>
                 <CheckCircle className="h-4 w-4 mr-3" />
                 <span className="text-sm">Completed</span>
               </div>
             </div>
 
+            {/* Status Action Button */}
             {(() => {
-              const nextStatus = getNextStatus(order.status);
-              return nextStatus && (
-                <div className="mt-6">
+              const currentStatus = order.status;
+              const nextStatus = getNextStatus(currentStatus);
+              const buttonText = getStatusAction(currentStatus);
+              
+              console.log('🔘 BUTTON RENDER:', {
+                currentStatus,
+                nextStatus,
+                buttonText,
+                updating
+              });
+              
+              return nextStatus ? (
+                <div key={`button-${currentStatus}-${renderKey}`} className="mt-6">
                   <button
                     onClick={() => updateOrderStatus(nextStatus)}
                     disabled={updating}
-                    className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(order.status)}`}
+                    className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(currentStatus)}`}
                   >
-                    {updating ? 'Updating...' : getStatusAction(order.status)}
+                    {updating ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Updating...
+                      </span>
+                    ) : (
+                      buttonText
+                    )}
                   </button>
                 </div>
-              );
+              ) : null;
             })()}
           </div>
 
@@ -317,41 +439,47 @@ const OrderDetails: React.FC = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
             
             <div className="space-y-4">
-              {(order.items || []).map((item, index) => (
-                <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">
-                        {item.quantity}x {item.menu_name || getMenuItemNameSync(item.menu_id)}
-                      </h3>
-                      {item.customizations && Object.keys(item.customizations).length > 0 && (
-                        <div className="mt-1 space-y-1">
-                          {Object.entries(item.customizations).map(([key, values]) => {
-                            // Skip empty values
-                            if (!values || (Array.isArray(values) && values.length === 0) || values === '') return null;
-                            
-                            return (
-                              <p key={key} className="text-sm text-gray-600 capitalize">
-                                <span className="font-medium">{key}:</span> {Array.isArray(values) ? values.join(', ') : values}
-                              </p>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">฿{(Number(item.price) * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">฿{Number(item.price).toFixed(2)} each</p>
+              {(!order.items || order.items.length === 0) ? (
+                <div className="text-center py-4 text-gray-500">
+                  No items found for this order
+                </div>
+              ) : (
+                order.items.map((item, index) => (
+                  <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900">
+                          {item.quantity || 0}x {item.menu_name || `Menu Item #${item.menu_id || 'Unknown'}`}
+                        </h3>
+                        {item.customizations && Object.keys(item.customizations).length > 0 && (
+                          <div className="mt-1 space-y-1">
+                            {Object.entries(item.customizations).map(([key, values]) => {
+                              // Skip empty values
+                              if (!values || (Array.isArray(values) && values.length === 0) || values === '') return null;
+                              
+                              return (
+                                <p key={key} className="text-sm text-gray-600 capitalize">
+                                  <span className="font-medium">{key}:</span> {Array.isArray(values) ? values.join(', ') : values}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">฿{(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</p>
+                        <p className="text-sm text-gray-500">฿{Number(item.price || 0).toFixed(2)} each</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-900">Total Amount</span>
-                <span className="text-lg font-bold text-gray-900">฿{Number(order.total).toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-900">฿{getDisplayTotal().toFixed(2)}</span>
               </div>
             </div>
           </div>
