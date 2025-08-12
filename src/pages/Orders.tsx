@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { OrderStatus } from '@/types';
-import { useMenuItems } from '@/hooks/useMenuItems';
-import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
-import { 
-  RefreshCw, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import { useOrders } from '@/hooks/useOrders';
+import {
+  RefreshCw,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   Phone,
   Eye,
   Filter
 } from 'lucide-react';
 import NoBackendMessage from '@/components/NoBackendMessage';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
-import ConnectionStatus from '@/components/ConnectionStatus';
-import NewOrderNotification from '@/components/NewOrderNotification';
 
 const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const navigate = useNavigate();
-  
+
   // Get auto refresh interval from settings
   const getAutoRefreshInterval = (): number => {
     try {
@@ -35,25 +31,18 @@ const Orders: React.FC = () => {
     }
     return 0; // disabled by default
   };
-  
+
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
-  
-  const { getMenuItemNameSync, preloadMenuItems } = useMenuItems();
-  
-  // Use real-time orders hook
+
+
+  // Use orders hook
   const {
     orders,
-    connectionStatus,
-    newOrderNotification,
     loading,
     error: apiError,
-    connect,
     refreshOrders,
-    updateOrderStatus: realtimeUpdateOrderStatus,
-    clearNewOrderNotification
-  } = useRealtimeOrders({
-    enableNotifications: true,
-    autoConnect: true,
+    updateOrderStatus: realtimeUpdateOrderStatus
+  } = useOrders({
     autoRefreshInterval
   });
 
@@ -77,25 +66,13 @@ const Orders: React.FC = () => {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('settingsChanged', handleSettingsChanged as EventListener);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('settingsChanged', handleSettingsChanged as EventListener);
     };
   }, []);
 
-  // Preload menu items when orders change
-  useEffect(() => {
-    if (orders.length > 0) {
-      const menuIds = orders.flatMap(order => 
-        (order.items || []).map(item => item.menu_id).filter(Boolean)
-      );
-      console.log('Orders: Extracted menu IDs:', menuIds);
-      if (menuIds.length > 0) {
-        preloadMenuItems(menuIds);
-      }
-    }
-  }, [orders, preloadMenuItems]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -116,7 +93,7 @@ const Orders: React.FC = () => {
     }
 
     setUpdatingOrderIds(prev => new Set([...prev, orderId]));
-    
+
     try {
       console.log(`Updating order ${orderId} from status to ${newStatus}`);
       await realtimeUpdateOrderStatus(orderId, newStatus);
@@ -137,9 +114,6 @@ const Orders: React.FC = () => {
     }
   };
 
-  const handleViewOrder = (orderId: string) => {
-    navigate(`/orders/${orderId}`);
-  };
 
 
   const getNextStatus = (currentStatus: OrderStatus): OrderStatus | null => {
@@ -196,24 +170,11 @@ const Orders: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* New Order Notification */}
-      {newOrderNotification && (
-        <NewOrderNotification
-          order={newOrderNotification}
-          onClose={clearNewOrderNotification}
-          onViewOrder={handleViewOrder}
-        />
-      )}
 
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
-          <ConnectionStatus
-            status={connectionStatus}
-            onRetry={connect}
-            size="sm"
-          />
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -282,7 +243,7 @@ const Orders: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-gray-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completed Today</p>
+              <p className="text-sm font-medium text-gray-500">Completed</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.completed.length}</p>
             </div>
           </div>
@@ -302,7 +263,7 @@ const Orders: React.FC = () => {
                 {order.customer_info.phone && (
                   <p className="text-xs text-gray-500 flex items-center mt-1">
                     <Phone className="h-3 w-3 mr-1" />
-                    <a 
+                    <a
                       href={`tel:${order.customer_info.phone}`}
                       className="hover:text-primary-600 underline"
                     >
@@ -318,8 +279,7 @@ const Orders: React.FC = () => {
 
             <div className="space-y-2 mb-4 flex-1">
               {(order.items || []).map((item, index) => {
-                console.log(`Orders render: Item ${index}:`, item);
-                const displayName = item?.menu_name || getMenuItemNameSync(item?.menu_id);
+                const displayName = item?.menu_name || `Menu Item #${item?.menu_id}`;
                 return (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="truncate mr-2">{item?.quantity || 0}x {displayName}</span>
@@ -334,10 +294,10 @@ const Orders: React.FC = () => {
                 Total: ฿{Number(order.total).toFixed(2)}
               </span>
               <span className="text-sm text-gray-500">
-               Order at: {order.created_at ? (() => {
-                 const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;
-                 return isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString('th-TH');
-               })() : 'N/A'}
+                Order at: {order.created_at ? (() => {
+                  const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;
+                  return isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString('th-TH');
+                })() : 'N/A'}
               </span>
             </div>
 
@@ -350,7 +310,7 @@ const Orders: React.FC = () => {
                 <Eye className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">View</span>
               </Link>
-              
+
               {(() => {
                 const nextStatus = getNextStatus(order.status);
                 const isUpdating = updatingOrderIds.has(order.id);
@@ -358,11 +318,10 @@ const Orders: React.FC = () => {
                   <button
                     onClick={() => updateOrderStatus(order.id, nextStatus)}
                     disabled={isUpdating}
-                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${
-                      isUpdating 
+                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${isUpdating
                         ? 'bg-gray-400 text-white cursor-not-allowed'
                         : getStatusButtonColor(order.status)
-                    }`}
+                      }`}
                   >
                     {isUpdating ? (
                       <span className="flex items-center justify-center">
@@ -389,8 +348,8 @@ const Orders: React.FC = () => {
               <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {statusFilter === 'all' 
-                  ? 'No orders have been placed yet.' 
+                {statusFilter === 'all'
+                  ? 'No orders have been placed yet.'
                   : `No orders with status "${statusFilter}" found.`
                 }
               </p>

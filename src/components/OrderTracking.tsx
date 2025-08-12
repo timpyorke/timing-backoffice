@@ -1,53 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Order } from '@/types';
-import { apiService } from '@/services/api';
 import { Clock, User, Phone, CheckCircle } from 'lucide-react';
 
 interface OrderTrackingProps {
-  orderId: string;
-  refreshInterval?: number; // in milliseconds
+  order: Order | null;
+  loading?: boolean;
+  error?: string | null;
 }
 
 const OrderTracking: React.FC<OrderTrackingProps> = ({ 
-  orderId, 
-  refreshInterval = 30000 // 30 seconds default
+  order,
+  loading = false,
+  error = null
 }) => {
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        setError(null);
-        const response = await apiService.getOrder(orderId);
-        
-        // Handle different response structures
-        let orderData: Order | null = null;
-        if (response && typeof response === 'object') {
-          if ('data' in response) {
-            orderData = (response as any).data;
-          } else {
-            orderData = response as Order;
-          }
-        }
-        
-        setOrder(orderData);
-      } catch (err) {
-        console.error('Error fetching order:', err);
-        setError('Failed to load order details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOrder();
-    
-    // Set up polling for updates
-    const interval = setInterval(fetchOrder, refreshInterval);
-    
-    return () => clearInterval(interval);
-  }, [orderId, refreshInterval]);
 
   if (loading) {
     return (
@@ -233,11 +198,6 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
         </div>
       </div>
 
-      {/* Auto-refresh indicator */}
-      <div className="text-center text-sm text-gray-500">
-        <Clock className="h-4 w-4 inline mr-1" />
-        Updates automatically every {refreshInterval / 1000} seconds
-      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { useOrders } from '@/hooks/useOrders';
 import { apiService } from '@/services/api';
 import { DailySales, SalesInsights } from '@/types';
 import {
@@ -14,7 +14,6 @@ import {
   Eye,
   RefreshCw
 } from 'lucide-react';
-import ConnectionStatus from '@/components/ConnectionStatus';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 const Dashboard: React.FC = () => {
@@ -24,14 +23,8 @@ const Dashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const {
-    orders,
-    connectionStatus,
-    connect,
-    refreshOrders
-  } = useRealtimeOrders({
-    enableNotifications: true,
-    autoConnect: true
-  });
+    orders
+  } = useOrders({});
 
   // Get recent orders (last 10)
   const recentOrders = orders.slice(0, 10);
@@ -102,10 +95,8 @@ const Dashboard: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      fetchDashboardData(),
-      refreshOrders()
-    ]);
+    // Only refresh dashboard data, orders are handled by useRealtimeOrders hook
+    await fetchDashboardData();
   };
 
   if (loading) {
@@ -122,11 +113,6 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <ConnectionStatus
-            status={connectionStatus}
-            onRetry={connect}
-            size="sm"
-          />
         </div>
         <button
           onClick={handleRefresh}

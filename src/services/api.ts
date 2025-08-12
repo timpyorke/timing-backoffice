@@ -1,4 +1,4 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse } from '@/types';
 import { auth } from '@/services/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -7,21 +7,81 @@ class ApiService {
   private refreshTokenPromise: Promise<string> | null = null;
 
   // Helper function to normalize order data from API response
-  private normalizeOrder(order: any): Order {
+  private normalizeOrder(order: unknown): Order {
+    if (!order || typeof order !== 'object') {
+      throw new Error('Invalid order data received from API');
+    }
+
+    const orderData = order as Record<string, unknown>;
+    
     return {
-      ...order,
-      id: order.id ? String(order.id) : order.id,
-      total: typeof order.total === 'string' ? parseFloat(order.total) : order.total,
-      status: normalizeOrderStatus(order.status),
-      items: (order.items || []).map((item: any) => ({
-        ...item,
-        price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
-      }))
+      id: orderData.id ? String(orderData.id) : '',
+      customer_info: this.normalizeCustomerInfo(orderData.customer_info),
+      items: this.normalizeOrderItems(orderData.items),
+      total: this.normalizeTotal(orderData.total),
+      status: normalizeOrderStatus(orderData.status as string),
+      created_at: orderData.created_at as string || new Date().toISOString(),
+      updated_at: orderData.updated_at as string || new Date().toISOString(),
+      customer_id: orderData.customer_id as string,
+      estimatedTime: orderData.estimatedTime as number,
+      specialInstructions: orderData.specialInstructions as string,
+      notes: orderData.notes as string | null,
+      original_total: orderData.original_total as number | string | null,
+      discount_amount: orderData.discount_amount as number | string | null,
     };
   }
 
+  private normalizeCustomerInfo(customerInfo: unknown): Order['customer_info'] {
+    if (!customerInfo || typeof customerInfo !== 'object') {
+      return { name: 'Unknown Customer' };
+    }
+    
+    const info = customerInfo as Record<string, unknown>;
+    return {
+      name: (info.name as string) || 'Unknown Customer',
+      email: info.email as string,
+      phone: info.phone as string,
+    };
+  }
+
+  private normalizeOrderItems(items: unknown): Order['items'] {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+    
+    return items.map((item: unknown) => {
+      if (!item || typeof item !== 'object') {
+        throw new Error('Invalid order item data');
+      }
+      
+      const itemData = item as Record<string, unknown>;
+      return {
+        id: itemData.id as number,
+        menu_id: Number(itemData.menu_id) || 0,
+        menu_name: (itemData.menu_name as string) || 'Unknown Item',
+        menu_description: itemData.menu_description as string,
+        menu_description_th: itemData.menu_description_th as string,
+        image_url: itemData.image_url as string,
+        quantity: Number(itemData.quantity) || 0,
+        price: this.normalizeTotal(itemData.price),
+        customizations: itemData.customizations as Record<string, unknown>,
+      };
+    });
+  }
+
+  private normalizeTotal(total: unknown): number {
+    if (typeof total === 'string') {
+      const parsed = parseFloat(total);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof total === 'number') {
+      return total;
+    }
+    return 0;
+  }
+
   // Helper function to normalize array of orders
-  private normalizeOrders(orders: any[]): Order[] {
+  private normalizeOrders(orders: unknown[]): Order[] {
     return orders.map(order => this.normalizeOrder(order));
   }
 
@@ -199,23 +259,38 @@ class ApiService {
     }
   }
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | ApiStatusUpdateResponse> {
     console.log(`API: Updating order ${orderId} to status ${status}`);
     
     try {
-      const result = await this.request<any>(`/admin/orders/${orderId}/status`, {
+      const result = await this.request<ApiStatusUpdateResponse | Order>(`/admin/orders/${orderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
       
       console.log(`API: Raw response for order ${orderId}:`, result);
-      const normalizedOrder = this.normalizeOrder(result);
-      console.log(`API: Normalized order ${orderId}:`, normalizedOrder);
-      return normalizedOrder;
+      
+      // Check if response is nested format
+      if (this.isApiStatusUpdateResponse(result)) {
+        // Return the nested response as-is for OrderDetails to handle
+        return result;
+      } else {
+        // If it's a direct Order response, normalize it
+        const normalizedOrder = this.normalizeOrder(result);
+        console.log(`API: Normalized order ${orderId}:`, normalizedOrder);
+        return normalizedOrder;
+      }
     } catch (error) {
       console.error(`API: Failed to update order ${orderId}:`, error);
       throw error;
     }
+  }
+
+  private isApiStatusUpdateResponse(response: unknown): response is ApiStatusUpdateResponse {
+    return typeof response === 'object' && 
+           response !== null && 
+           'success' in response && 
+           'data' in response;
   }
 
   async getMenuItems(): Promise<MenuItem[]> {
