@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -14,4 +14,18 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 export const auth: Auth = getAuth(app);
+
+// Configure persistence with robust fallbacks for Safari / Private mode
+(async () => {
+  try {
+    await setPersistence(auth, indexedDBLocalPersistence);
+  } catch (e) {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (e2) {
+      // Last resort to prevent crashes in restricted environments
+      await setPersistence(auth, inMemoryPersistence);
+    }
+  }
+})();
 export const db: Firestore = getFirestore(app);
