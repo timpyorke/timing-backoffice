@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from 'firebase/auth';
+import { safeStorage } from '@/utils/safeStorage';
 import { auth } from '@/services/firebase';
 import { User as AppUser } from '@/types';
 
@@ -41,7 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           console.log('Proactively refreshing token...');
           const newToken = await firebaseUser.getIdToken(true);
-          localStorage.setItem('token', newToken);
+          safeStorage.setItem('token', newToken);
           console.log('Token refreshed proactively');
         } catch (error) {
           console.error('Proactive token refresh failed:', error);
@@ -63,13 +64,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         startTokenRefresh(firebaseUser);
 
         // Check if we have user data in localStorage first
-        const userData = localStorage.getItem('user');
+        const userData = safeStorage.getItem('user');
         if (userData) {
           setUser(JSON.parse(userData));
           // Ensure we have a fresh token
           try {
             const token = await firebaseUser.getIdToken();
-            localStorage.setItem('token', token);
+            safeStorage.setItem('token', token);
           } catch (error) {
             console.error('Failed to get initial token:', error);
           }
@@ -83,16 +84,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             role: 'admin' as const,
             createdAt: new Date()
           };
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(newUserData));
+          safeStorage.setItem('token', token);
+          safeStorage.setItem('user', JSON.stringify(newUserData));
           setUser(newUserData);
         }
       } else {
         // Stop token refresh when user logs out
         stopTokenRefresh();
         setUser(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        safeStorage.removeItem('user');
+        safeStorage.removeItem('token');
       }
       setLoading(false);
     });
@@ -121,8 +122,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         createdAt: new Date()
       };
       
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      safeStorage.setItem('token', token);
+      safeStorage.setItem('user', JSON.stringify(userData));
       
       // Set user state immediately
       setUser(userData);
@@ -141,8 +142,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     try {
       await auth.signOut();
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      safeStorage.removeItem('user');
+      safeStorage.removeItem('token');
       setUser(null);
       setFirebaseUser(null);
     } catch (error) {
@@ -156,7 +157,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (firebaseUser) {
         console.log('Manually refreshing token...');
         const newToken = await firebaseUser.getIdToken(true);
-        localStorage.setItem('token', newToken);
+        safeStorage.setItem('token', newToken);
         console.log('Token refreshed manually');
       } else {
         throw new Error('No authenticated user found');

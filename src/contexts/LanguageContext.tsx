@@ -283,12 +283,12 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem('language');
+    const saved = safeStorage.getItem('language');
     return (saved as Language) || 'th'; // Default to Thai
   });
 
   useEffect(() => {
-    localStorage.setItem('language', language);
+    safeStorage.setItem('language', language);
   }, [language]);
 
   const t = (key: string): string => {
@@ -309,3 +309,4 @@ export const useLanguage = () => {
   }
   return context;
 };
+import { safeStorage } from '@/utils/safeStorage';

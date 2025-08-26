@@ -22,7 +22,7 @@ const Orders: React.FC = () => {
   // Get auto refresh interval from settings
   const getAutoRefreshInterval = (): number => {
     try {
-      const settings = localStorage.getItem('app_settings');
+      const settings = safeStorage.getItem('app_settings');
       if (settings) {
         const parsed = JSON.parse(settings);
         return parsed.autoRefreshInterval || 0;
@@ -367,3 +367,4 @@ const Orders: React.FC = () => {
 };
 
 export default Orders;
+import { safeStorage } from '@/utils/safeStorage';
