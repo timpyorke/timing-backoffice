@@ -1,5 +1,6 @@
 import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput } from '@/types';
 import { auth } from '@/services/firebase';
+import { safeStorage } from '@/utils/safeStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -97,7 +98,7 @@ class ApiService {
     try {
       const user = auth.currentUser;
       if (!user) {
-        return localStorage.getItem('token');
+        return safeStorage.getItem('token');
       }
 
       // Check if token needs refresh (Firebase handles this internally)
@@ -105,13 +106,13 @@ class ApiService {
       
       // Update localStorage with the current token
       if (token) {
-        localStorage.setItem('token', token);
+        safeStorage.setItem('token', token);
       }
       
       return token;
     } catch (error) {
       console.error('Error getting valid token:', error);
-      return localStorage.getItem('token');
+      return safeStorage.getItem('token');
     }
   }
 
@@ -151,8 +152,8 @@ class ApiService {
     } catch (error) {
       console.error('Token refresh failed:', error);
       // Clear invalid tokens
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      safeStorage.removeItem('token');
+      safeStorage.removeItem('user');
       // Redirect to login if needed
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';

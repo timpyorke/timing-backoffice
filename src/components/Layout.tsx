@@ -2,18 +2,14 @@ import React, { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useNotifications } from '@/hooks/useNotifications';
 import {
   Coffee,
   ShoppingCart,
   Menu as MenuIcon,
   Settings,
-  Bell,
   LogOut,
   User,
   X,
-  Volume2,
-  VolumeX,
   Languages,
   BarChart3,
   Home,
@@ -23,7 +19,6 @@ const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
-  const { unreadCount, markAsRead, soundEnabled, toggleSound } = useNotifications();
   const location = useLocation();
 
   const navigation = [
@@ -173,31 +168,7 @@ const Layout: React.FC = () => {
                 <span className="text-sm font-medium">{language === 'th' ? 'TH' : 'EN'}</span>
               </button>
 
-              {/* Sound toggle */}
-              <button
-                onClick={() => toggleSound(!soundEnabled)}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-                title={soundEnabled ? 'Disable sound' : 'Enable sound'}
-              >
-                {soundEnabled ? (
-                  <Volume2 className="h-5 w-5" />
-                ) : (
-                  <VolumeX className="h-5 w-5" />
-                )}
-              </button>
-
-              {/* Notifications */}
-              <button
-                onClick={markAsRead}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 relative"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
+              {/* Notifications removed */}
 
               {/* User menu */}
               <div className="relative">
