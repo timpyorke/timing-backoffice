@@ -9,7 +9,8 @@ import {
   AlertCircle,
   Phone,
   Eye,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react';
 import NoBackendMessage from '@/components/NoBackendMessage';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
@@ -191,6 +192,10 @@ const Orders: React.FC = () => {
               <option value="completed">Completed</option>
             </select>
           </div>
+          <Link to="/orders/new" className="btn-primary flex items-center space-x-2">
+            <Plus className="h-4 w-4" />
+            <span>New Order</span>
+          </Link>
           <button
             onClick={handleRefresh}
             disabled={refreshing}

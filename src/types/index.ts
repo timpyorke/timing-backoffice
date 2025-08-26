@@ -58,6 +58,26 @@ export interface OrderItem {
   };
 }
 
+// Payload for creating a new order from Admin
+export interface CreateOrderInput {
+  customer_info: {
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  customer_id?: string;
+  items: Array<{
+    menu_id: number;
+    quantity: number;
+    price?: number;
+    customizations?: Record<string, unknown>;
+  }>;
+  notes?: string | null;
+  specialInstructions?: string;
+  estimatedTime?: number;
+  discount_amount?: number;
+}
+
 export interface Customization {
   id: string;
   name: string;

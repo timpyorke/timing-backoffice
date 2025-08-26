@@ -1,4 +1,4 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput } from '@/types';
 import { auth } from '@/services/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -294,7 +294,15 @@ class ApiService {
   }
 
   async getMenuItems(): Promise<MenuItem[]> {
-    return this.request('/admin/menu');
+    const result = await this.request<any>('/admin/menu');
+    if (Array.isArray(result)) return result as MenuItem[];
+    if (result && typeof result === 'object') {
+      if (Array.isArray(result.data)) return result.data as MenuItem[];
+      if (result.success && result.data && Array.isArray(result.data.items)) return result.data.items as MenuItem[];
+      if (Array.isArray(result.items)) return result.items as MenuItem[];
+    }
+    console.warn('API: Unexpected menu response structure:', result);
+    return [];
   }
 
   async getMenuItemById(id: string): Promise<MenuItem> {
@@ -335,6 +343,60 @@ class ApiService {
       return this.normalizeOrder(result.data);
     }
     
+    return this.normalizeOrder(result);
+  }
+
+  async createOrder(payload: CreateOrderInput): Promise<Order> {
+    const normalizeCustomizations = (c: Record<string, any> | undefined) => {
+      if (!c || typeof c !== 'object') return undefined as any;
+      const out: Record<string, any> = {};
+      for (const [k, v] of Object.entries(c)) {
+        const keyLower = k.toLowerCase();
+        let nk = k;
+        if (keyLower === 'sweet') nk = 'sweetness';
+        if (keyLower === 'sizes') nk = 'size';
+        if (keyLower === 'size') nk = 'size';
+        if (nk === 'extras' && Array.isArray(v)) {
+          out[nk] = v.filter(Boolean);
+        } else if (v !== '' && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0)) {
+          out[nk] = v;
+        }
+      }
+      return Object.keys(out).length ? out : undefined;
+    };
+
+    const items = (payload.items || []).map((it) => ({
+      menu_id: Number(it.menu_id),
+      quantity: Number(it.quantity),
+      price: typeof it.price === 'number' ? it.price : undefined,
+      customizations: normalizeCustomizations(it.customizations as any),
+    }));
+
+    const total = items.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+
+    const requestBody: any = {
+      customer_info: payload.customer_info,
+      customer_name: payload.customer_info?.name || 'Customer',
+      customer_id: payload.customer_id,
+      items,
+      order_items: items,
+      notes: payload.notes,
+      specialInstructions: payload.specialInstructions,
+      estimatedTime: payload.estimatedTime,
+      discount_amount: payload.discount_amount,
+      status: 'pending',
+      total,
+    };
+
+    const result = await this.request<any>(`/admin/orders`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    });
+
+    // Handle API variants: { success, data } or direct Order
+    if (result && result.success && result.data) {
+      return this.normalizeOrder(result.data);
+    }
     return this.normalizeOrder(result);
   }
 
