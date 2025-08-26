@@ -11,6 +11,7 @@ import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Orders from '@/pages/Orders';
 import OrderDetails from '@/pages/OrderDetails';
+import CreateOrder from '@/pages/CreateOrder';
 import Menu from '@/pages/Menu';
 import Sales from '@/pages/Sales';
 import Settings from '@/pages/Settings';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
                 >
                   <Route index element={<Dashboard />} />
                   <Route path="orders" element={<Orders />} />
+                  <Route path="orders/new" element={<CreateOrder />} />
                   <Route path="orders/:id" element={<OrderDetails />} />
                   <Route path="menu" element={<Menu />} />
                   <Route path="sales" element={<Sales />} />

@@ -217,6 +217,8 @@ const OrderDetails: React.FC = () => {
     printWindow.print();
   };
 
+  // Payment image URL is computed inline at render from total
+
   const getStatusColor = (status: OrderStatus): string => {
     switch (status) {
       case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -525,6 +527,29 @@ const OrderDetails: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-900">Payment</p>
                   <p className="text-sm text-gray-500">Cash on Pickup</p>
+                </div>
+              </div>
+
+              {/* Payment image from external API */}
+              <div className="mt-2">
+                <p className="text-sm text-gray-900 mb-2">Payment QR</p>
+                <div className="flex">
+                  <img
+                    src={(() => {
+                      const totalAmount = getDisplayTotal();
+                      const amountParam = Number.isInteger(totalAmount)
+                        ? String(totalAmount)
+                        : String(Number(totalAmount.toFixed(2)));
+                      return `https://rub-tung.vercel.app/api/0990995156?amont=${encodeURIComponent(amountParam)}`;
+                    })()}
+                    alt="Payment QR code"
+                    className="border rounded-md max-w-xs w-full h-auto"
+                    onError={(e) => {
+                      console.error('Failed to load payment image');
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      toast.error('Unable to load payment image');
+                    }}
+                  />
                 </div>
               </div>
 
