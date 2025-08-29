@@ -304,7 +304,7 @@ const OrderDetails: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -327,7 +327,7 @@ const OrderDetails: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Order Information */}
         <div className="lg:col-span-2 space-y-6">
           {/* Status Card */}
@@ -370,7 +370,7 @@ const OrderDetails: React.FC = () => {
               const buttonText = getStatusAction(currentStatus);
               
               return nextStatus ? (
-                <div key={`button-${currentStatus}-${renderKey}`} className="mt-6">
+                <div key={`button-${currentStatus}-${renderKey}`} className="mt-6 hidden lg:block">
                   <button
                     onClick={() => updateOrderStatus(nextStatus)}
                     disabled={updating}
@@ -566,6 +566,36 @@ const OrderDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Sticky bottom action bar for small/tablet screens */}
+      {(() => {
+        const currentStatus = order.status;
+        const nextStatus = getNextStatus(currentStatus);
+        const buttonText = getStatusAction(currentStatus);
+        return nextStatus ? (
+          <div className="fixed inset-x-0 bottom-0 z-20 bg-white/95 backdrop-blur border-t border-gray-200 shadow-sm lg:hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-3">
+              <button
+                onClick={() => updateOrderStatus(nextStatus)}
+                disabled={updating}
+                className={`w-full tap-target rounded-md font-medium transition-colors disabled:opacity-50 px-4 py-3 ${getStatusButtonColor(currentStatus)}`}
+              >
+                {updating ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Updating...
+                  </span>
+                ) : (
+                  buttonText
+                )}
+              </button>
+            </div>
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 };
