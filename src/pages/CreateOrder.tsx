@@ -120,7 +120,7 @@ const CreateOrder: React.FC = () => {
 
   const canSubmit = useMemo(() => {
     return customerName.trim().length > 0 && items.length > 0 && items.every(i => i.quantity > 0);
-    }, [customerName, items]);
+  }, [customerName, items]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +230,7 @@ const CreateOrder: React.FC = () => {
                   const sel = selectedByMenuId[sid] || {};
                   const hasCustoms = m.customizations && Object.keys(m.customizations).length > 0;
                   return (
-                    <div key={m.id} className="border rounded-lg bg-white flex flex-col overflow-hidden">
+                    <div key={m.id} className="border rounded-lg bg-white flex flex-col overflow-hidden h-full">
                       <div className="h-36 bg-gray-100">
                         {m.image_url ? (
                           <img
@@ -282,36 +282,32 @@ const CreateOrder: React.FC = () => {
                                   </div>
                                 );
                               }
-                              // default single-select
+                              // default single-select (hide size selectors entirely)
                               const isSize = ['size', 'sizes'].includes(key.toLowerCase());
+                              if (isSize) return null;
                               const currentRaw = typeof sel[key] === 'string' ? sel[key] : '';
-                              const current = isSize ? (currentRaw || (opts[0] || '')) : currentRaw;
                               return (
                                 <div key={key}>
                                   <div className="text-gray-700 font-medium capitalize">{key}</div>
                                   <select
-                                    className={`input mt-1 ${isSize ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                    value={current}
+                                    className="input mt-1"
+                                    value={currentRaw}
                                     onChange={(e) => setSelectedByMenuId(prev => ({ ...prev, [sid]: { ...(prev[sid] || {}), [key]: e.target.value } }))}
-                                    disabled={isSize}
                                   >
-                                    {!isSize && <option value="">Select {key}</option>}
+                                    <option value="">Select {key}</option>
                                     {opts.map(opt => (
                                       <option key={opt} value={opt}>{opt}</option>
                                     ))}
                                   </select>
-                                  {isSize && (
-                                    <div className="text-xs text-gray-500 mt-1">Size selection is disabled</div>
-                                  )}
                                 </div>
                               );
                             })}
                           </div>
                         )}
-
+                        <div className="h-4" />
                         <button
                           type="button"
-                          className="btn-primary mt-4"
+                          className="btn-primary mt-auto mb-2 w-full tap-target py-3"
                           onClick={() => addItemByMenuId(Number(m.id), selectedByMenuId[sid])}
                         >
                           Add

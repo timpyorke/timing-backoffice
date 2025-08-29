@@ -6,6 +6,10 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        // Target iPad portrait/landscape nicely without overriding defaults
+        ipad: '834px',
+      },
       colors: {
         primary: {
           50: '#eff6ff',

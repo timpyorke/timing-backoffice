@@ -215,10 +215,10 @@ const Menu: React.FC = () => {
         </div>
       </div>
 
-      {/* Menu Items Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Menu Items Grid - optimized for tablets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredItems.map((item) => (
-          <div key={item.id} className="card overflow-hidden hover:shadow-lg transition-shadow">
+          <div key={item.id} className="card overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
             {/* Image */}
             <div className="h-48 bg-gray-200 relative overflow-hidden">
               {(item.image_url) ? (
@@ -262,7 +262,7 @@ const Menu: React.FC = () => {
             </div>
 
             {/* Content */}
-            <div className="p-4">
+            <div className="p-4 flex-1 flex flex-col">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900 text-lg">{getMenuItemName(item, language)}</h3>
                 <span className="text-lg font-bold text-primary-600">
@@ -318,10 +318,10 @@ const Menu: React.FC = () => {
               )}
 
               {/* Actions */}
-              <div className="flex space-x-2">
+              <div className="mt-auto flex space-x-2">
                 <button
                   onClick={() => handleToggleAvailability(item)}
-                  className={`flex-1 btn ${
+                  className={`flex-1 btn tap-target ${
                     item.active 
                       ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                       : 'bg-green-100 text-green-700 hover:bg-green-200'
@@ -342,14 +342,14 @@ const Menu: React.FC = () => {
                 
                 <button
                   onClick={() => handleEdit(item)}
-                  className="p-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200"
+                  className="p-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 tap-target"
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
                 
                 <button
                   onClick={() => handleDelete(item)}
-                  className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200"
+                  className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 tap-target"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

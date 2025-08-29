@@ -102,28 +102,29 @@ const Layout: React.FC = () => {
         </div>
       </div>
 
-      {/* Desktop sidebar */}
+      {/* Desktop/Tablet sidebar */}
       <div className="hidden md:flex md:flex-shrink-0">
-        <div className="flex flex-col w-64">
+        {/* Compact width on md (tablet), full width on lg+ */}
+        <div className="flex flex-col md:w-20 lg:w-64">
           <div className="flex flex-col h-0 flex-1 bg-white border-r border-gray-200">
             <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <Link to="/" className="flex items-center flex-shrink-0 px-4 hover:opacity-80 transition-opacity">
+              <Link to="/" className="flex items-center justify-center lg:justify-start flex-shrink-0 px-4 hover:opacity-80 transition-opacity">
                 <Coffee className="h-8 w-8 text-primary-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900">Timing</span>
+                <span className="ml-2 text-xl font-bold text-gray-900 hidden lg:inline">Timing</span>
               </Link>
               <nav className="mt-5 flex-1 px-2 space-y-1">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    className={`group flex items-center justify-center lg:justify-start px-2 py-2 text-sm font-medium rounded-md tap-target ${
                       isCurrentPath(item.href)
                         ? 'bg-primary-100 text-primary-900'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                   >
-                    <item.icon className="mr-3 h-5 w-5" />
-                    {item.name}
+                    <item.icon className="h-5 w-5 mr-0 lg:mr-3" />
+                    <span className="hidden lg:inline">{item.name}</span>
                   </Link>
                 ))}
               </nav>
@@ -136,7 +137,7 @@ const Layout: React.FC = () => {
         {/* Top navigation */}
         <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
           <button
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 md:hidden"
+            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 md:hidden tap-target"
             onClick={() => setSidebarOpen(true)}
           >
             <MenuIcon className="h-6 w-6" />
@@ -161,7 +162,7 @@ const Layout: React.FC = () => {
               {/* Language toggle */}
               <button
                 onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 flex items-center space-x-1"
+                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 flex items-center space-x-1 tap-target"
                 title="Switch language"
               >
                 <Languages className="h-5 w-5" />
@@ -181,7 +182,7 @@ const Layout: React.FC = () => {
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                    className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 tap-target"
                     title="Logout"
                   >
                     <LogOut className="h-5 w-5" />

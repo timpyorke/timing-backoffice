@@ -255,8 +255,8 @@ const Orders: React.FC = () => {
         </div>
       </div>
 
-      {/* Orders Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      {/* Orders Grid - more dense on tablets */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredOrders.map((order) => (
           <div key={order.id} className="card p-6 hover:shadow-md transition-shadow flex flex-col h-full">
             <div className="flex justify-between items-start mb-4">
@@ -310,7 +310,7 @@ const Orders: React.FC = () => {
             <div className="flex space-x-2 min-h-[2.5rem] mt-auto">
               <Link
                 to={`/orders/${order.id}`}
-                className="btn-secondary flex-1 flex items-center justify-center space-x-1 whitespace-nowrap text-sm"
+                className="btn-secondary flex-1 flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
               >
                 <Eye className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">View</span>
@@ -323,7 +323,7 @@ const Orders: React.FC = () => {
                   <button
                     onClick={() => updateOrderStatus(order.id, nextStatus)}
                     disabled={isUpdating}
-                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap ${isUpdating
+                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
                         ? 'bg-gray-400 text-white cursor-not-allowed'
                         : getStatusButtonColor(order.status)
                       }`}
