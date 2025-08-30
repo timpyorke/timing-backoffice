@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '@/services/api';
 import { CreateOrderInput, MenuItem, Order } from '@/types';
+import { getDiscountPercent, DISCOUNT_CODES } from '@/constants/discounts';
 import { toast } from 'sonner';
 import { Plus, Minus, Save, ArrowLeft, User, Phone, Mail, StickyNote, Search } from 'lucide-react';
 
@@ -17,6 +18,7 @@ const CreateOrder: React.FC = () => {
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
   const [customerName, setCustomerName] = useState('Customer');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -118,6 +120,10 @@ const CreateOrder: React.FC = () => {
     }, 0);
   }, [items, menu]);
 
+  const discountPercent = useMemo(() => getDiscountPercent(discountCode), [discountCode]);
+  const discountAmount = useMemo(() => Number((total * (discountPercent / 100)).toFixed(2)), [total, discountPercent]);
+  const grandTotal = useMemo(() => Number((total - discountAmount).toFixed(2)), [total, discountAmount]);
+
   const canSubmit = useMemo(() => {
     return customerName.trim().length > 0 && items.length > 0 && items.every(i => i.quantity > 0);
   }, [customerName, items]);
@@ -141,6 +147,7 @@ const CreateOrder: React.FC = () => {
         })),
         notes: notes.trim() || undefined,
         specialInstructions: specialInstructions.trim() || undefined,
+        discount_amount: discountAmount > 0 ? discountAmount : undefined,
       };
 
       const created: Order = await apiService.createOrder(payload);
@@ -397,13 +404,39 @@ const CreateOrder: React.FC = () => {
               </div>
             )}
             <div className="border-t mt-4 pt-4">
+              {/* Discount Code */}
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Discount Code</label>
+                <select
+                  className="input"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value)}
+                >
+                  <option value="">No discount</option>
+                  {Object.keys(DISCOUNT_CODES).map((code) => (
+                    <option key={code} value={code}>
+                      {code} - {DISCOUNT_CODES[code]}%
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-between text-sm">
                 <span>Items</span>
                 <span>{items.reduce((acc, it) => acc + it.quantity, 0)}</span>
               </div>
-              <div className="flex justify-between font-semibold text-gray-900 mt-1">
-                <span>Total</span>
+              <div className="flex justify-between text-sm mt-1">
+                <span>Subtotal</span>
                 <span>฿{total.toFixed(2)}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-700 mt-1">
+                  <span>Discount ({discountPercent}%)</span>
+                  <span>-฿{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold text-gray-900 mt-2">
+                <span>Total</span>
+                <span>฿{grandTotal.toFixed(2)}</span>
               </div>
               <button
                 type="submit"
@@ -411,7 +444,7 @@ const CreateOrder: React.FC = () => {
                 className="w-full mt-4 btn-primary flex items-center justify-center space-x-2"
               >
                 <Save className={`h-4 w-4 ${submitting ? 'animate-spin' : ''}`} />
-                <span>{submitting ? 'Creating...' : 'Create Order'}</span>
+                <span>{submitting ? 'Creating...' : 'Place Order'}</span>
               </button>
             </div>
           </div>
