@@ -103,10 +103,12 @@ const CreateOrder: React.FC = () => {
   };
 
   const incrementQty = (index: number) => {
+    // Increase quantity by 1 each click (reverted to qty behavior)
     setItems(prev => prev.map((it, i) => i === index ? { ...it, quantity: it.quantity + 1 } : it));
   };
 
   const decrementQty = (index: number) => {
+    // Decrease quantity by 1 each click; remove item if <= 0
     setItems(prev => prev
       .map((it, i) => i === index ? { ...it, quantity: it.quantity - 1 } : it)
       .filter(it => it.quantity > 0)
@@ -314,7 +316,7 @@ const CreateOrder: React.FC = () => {
             )}
           </div>
 
-          
+
         </div>
 
         {/* Cart & Summary */}
@@ -403,10 +405,34 @@ const CreateOrder: React.FC = () => {
                           <input
                             type="number"
                             min={0}
-                            step="0.01"
+                            step="5"
                             className="input w-24"
                             value={unit}
-                            onChange={e => updateItem(idx, { price: Number(e.target.value) })}
+                            onFocus={(e) => {
+                              // Select existing value so first digit replaces it
+                              // Helpful when current value is 0
+                              try { e.target.select(); } catch { }
+                            }}
+                            onKeyDown={(e) => {
+                              // If current is '0' and user types a digit, replace instead of appending
+                              const key = e.key;
+                              if (/^[0-9]$/.test(key)) {
+                                const cur = (e.currentTarget.value ?? '');
+                                if (cur === '0') {
+                                  e.preventDefault();
+                                  updateItem(idx, { price: Number(key) });
+                                }
+                              }
+                            }}
+                            onChange={e => {
+                              let val = e.target.value;
+                              // Remove unnecessary leading zeros (keep single 0 or 0.xxx)
+                              if (/^0+\d/.test(val)) {
+                                val = val.replace(/^0+(?=\d)/, '');
+                              }
+                              const num = Number(val || '0');
+                              updateItem(idx, { price: isNaN(num) ? 0 : num });
+                            }}
                             title="Unit price"
                           />
                           <button type="button" className="btn-danger" onClick={() => removeItem(idx)}>Remove</button>
