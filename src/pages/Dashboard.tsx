@@ -22,9 +22,8 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const {
-    orders
-  } = useOrders({});
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { orders } = useOrders({ date: todayStr });
 
   // Get recent orders (last 10)
   const recentOrders = orders.slice(0, 10);
@@ -99,6 +98,11 @@ const Dashboard: React.FC = () => {
     await fetchDashboardData();
   };
 
+  const headerDateDisplay = React.useMemo(
+    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
+    []
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -112,7 +116,9 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerDateDisplay}</span>
+          </h1>
         </div>
         <button
           onClick={handleRefresh}
@@ -135,7 +141,12 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.total_revenue || todaySales?.totalRevenue || 0).toLocaleString()}
+                {(() => {
+                  const ordersRevenue = Array.isArray(orders)
+                    ? orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+                    : 0;
+                  return `฿${ordersRevenue.toLocaleString()}`;
+                })()}
               </p>
             </div>
           </div>
@@ -150,7 +161,7 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Orders</p>
               <p className="text-2xl font-bold text-gray-900">
-                {todaySales?.total_orders || todaySales?.totalOrders || 0}
+                {todaySales?.completed_orders ?? todaySales?.total_orders ?? (todaySales as any)?.totalOrders ?? 0}
               </p>
             </div>
           </div>
@@ -165,7 +176,14 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Avg. Order Value</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0)).toFixed(0)}
+                {(() => {
+                  const completedRev = (todaySales as any)?.completed_revenue;
+                  const completed = todaySales?.completed_orders;
+                  const avg = (typeof completedRev === 'number' && completed && completed > 0)
+                    ? (completedRev / completed)
+                    : (todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0));
+                  return `฿${Number(avg).toFixed(0)}`;
+                })()}
               </p>
             </div>
           </div>

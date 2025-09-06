@@ -18,6 +18,7 @@ import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD or empty for all
   const [refreshing, setRefreshing] = useState(false);
 
   // Get auto refresh interval from settings
@@ -36,11 +37,20 @@ const Orders: React.FC = () => {
 
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
 
-  // Display today's date in the header
+  // Display date in the header (selected or today)
   const todayDisplay = useMemo(
     () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
     []
   );
+  const headerDateDisplay = useMemo(() => {
+    if (dateFilter) {
+      const d = new Date(dateFilter);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+      }
+    }
+    return todayDisplay;
+  }, [dateFilter, todayDisplay]);
 
 
   // Use orders hook
@@ -51,7 +61,8 @@ const Orders: React.FC = () => {
     refreshOrders,
     updateOrderStatus: realtimeUpdateOrderStatus
   } = useOrders({
-    autoRefreshInterval
+    autoRefreshInterval,
+    date: dateFilter || undefined
   });
 
   // Listen for settings changes to update auto refresh interval
@@ -151,6 +162,12 @@ const Orders: React.FC = () => {
     }
   };
 
+  const canCancel = (status: OrderStatus) => status !== 'completed' && status !== 'cancelled';
+  const handleCancel = async (orderId: string) => {
+    if (!confirm('Cancel this order? This cannot be undone.')) return;
+    await updateOrderStatus(orderId, 'cancelled');
+  };
+
   // Debug logging for order display issues
   console.log(`Orders Component: Loaded ${orders?.length || 0} orders, filtering by "${statusFilter}"`);
 
@@ -182,8 +199,7 @@ const Orders: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
-          <span className="text-sm text-gray-600">Date: {todayDisplay}</span>
+          <h1 className="text-2xl font-bold text-gray-900">{headerDateDisplay}</h1>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -200,7 +216,26 @@ const Orders: React.FC = () => {
               <option value="completed">Completed</option>
             </select>
           </div>
-          <Link to="/orders/new" className="btn-primary flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
+            <label htmlFor="order-date" className="text-sm text-gray-600">Date:</label>
+            <input
+              id="order-date"
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="input py-1"
+            />
+            {dateFilter && (
+              <button
+                className="btn-secondary px-2 py-1 text-sm"
+                onClick={() => setDateFilter('')}
+                title="Clear date filter"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <Link to="/orders/new" className="btn-primary flex items-center space-x-2 whitespace-nowrap">
             <Plus className="h-4 w-4" />
             <span>New Order</span>
           </Link>
@@ -344,24 +379,38 @@ const Orders: React.FC = () => {
               {(() => {
                 const nextStatus = getNextStatus(order.status);
                 const isUpdating = updatingOrderIds.has(order.id);
-                return nextStatus && (
-                  <button
-                    onClick={() => updateOrderStatus(order.id, nextStatus)}
-                    disabled={isUpdating}
-                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
-                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                      : getStatusButtonColor(order.status)
-                      }`}
-                  >
-                    {isUpdating ? (
-                      <span className="flex items-center justify-center">
-                        <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                        <span className="truncate">Updating...</span>
-                      </span>
-                    ) : (
-                      <span className="truncate">{getStatusAction(order.status)}</span>
+                return (
+                  <>
+                    {canCancel(order.status) && (
+                      <button
+                        onClick={() => handleCancel(order.id)}
+                        disabled={isUpdating}
+                        className={`px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                        title="Cancel order"
+                      >
+                        Cancel
+                      </button>
                     )}
-                  </button>
+                    {nextStatus && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, nextStatus)}
+                        disabled={isUpdating}
+                        className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : getStatusButtonColor(order.status)
+                          }`}
+                      >
+                        {isUpdating ? (
+                          <span className="flex items-center justify-center">
+                            <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                            <span className="truncate">Updating...</span>
+                          </span>
+                        ) : (
+                          <span className="truncate">{getStatusAction(order.status)}</span>
+                        )}
+                      </button>
+                    )}
+                  </>
                 );
               })()}
             </div>

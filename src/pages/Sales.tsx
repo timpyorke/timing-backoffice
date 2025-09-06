@@ -123,6 +123,14 @@ const Sales: React.FC = () => {
     );
   }
 
+  // Derived metrics excluding cancelled orders where possible
+  const summary = salesInsights?.data.summary;
+  const ordersExclCancelled = summary ? (summary.total_orders - summary.cancelled_orders) : 0;
+  const revenueExclCancelled = summary ? (summary.completed_revenue) : 0;
+  const avgValueExcl = summary && summary.completed_orders > 0
+    ? (summary.completed_revenue / summary.completed_orders)
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -201,7 +209,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{salesInsights.data.summary.total_orders}</p>
+                  <p className="text-2xl font-bold text-gray-900">{ordersExclCancelled}</p>
                 </div>
               </div>
             </div>
@@ -213,7 +221,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">฿{salesInsights.data.summary.total_revenue.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{revenueExclCancelled.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -225,7 +233,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-gray-900">฿{salesInsights.data.summary.average_order_value.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{avgValueExcl.toFixed(2)}</p>
                 </div>
               </div>
             </div>
@@ -294,7 +302,7 @@ const Sales: React.FC = () => {
                           <img 
                             src={item.image_url} 
                             alt={item.menu_name}
-                            className="h-12 w-12 rounded-lg object-cover"
+                            className="h-12 w-12 rounded-lg object-cover object-center"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';

@@ -220,12 +220,12 @@ const Menu: React.FC = () => {
         {filteredItems.map((item) => (
           <div key={item.id} className="card overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
             {/* Image */}
-            <div className="h-48 bg-gray-200 relative overflow-hidden">
+            <div className="aspect-square bg-gray-200 relative overflow-hidden">
               {(item.image_url) ? (
                 <img
                   src={item.image_url}
                   alt={getMenuItemName(item, language)}
-                  className="w-full h-full object-cover transition-transform hover:scale-105"
+                  className="w-full h-full object-cover object-center transition-transform hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
