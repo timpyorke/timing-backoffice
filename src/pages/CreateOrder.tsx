@@ -25,7 +25,7 @@ const CreateOrder: React.FC = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [specialInstructions] = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedByMenuId, setSelectedByMenuId] = useState<Record<string, Record<string, any>>>({});
