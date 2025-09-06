@@ -164,9 +164,7 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {},
-    retries = 3,
-    delay = 1000
+    options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
 
@@ -176,16 +174,7 @@ class ApiService {
         headers,
         ...options,
       });
-
-      if (response.status === 429 && retries > 0) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '1', 10);
-        const waitTime = retryAfter * 1000 + Math.random() * 1000; // Add jitter
-        
-        console.warn(`Rate limited. Retrying after ${waitTime / 1000} seconds...`);
-        await new Promise(res => setTimeout(res, waitTime));
-        
-        return this.request(endpoint, options, retries - 1, delay * 2);
-      }
+      
       
       if (response.status === 401) {
         console.log('Token expired, attempting refresh...');
@@ -216,12 +205,7 @@ class ApiService {
 
       return response.json();
     } catch (error) {
-      if (retries > 0) {
-        console.warn(`Request failed. Retrying in ${delay / 1000}s...`, error);
-        await new Promise(res => setTimeout(res, delay));
-        return this.request(endpoint, options, retries - 1, delay * 2);
-      }
-      console.error('API request failed after multiple retries:', error);
+      console.error('API request failed:', error);
       throw error;
     }
   }
