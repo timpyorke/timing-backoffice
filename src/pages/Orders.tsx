@@ -230,7 +230,7 @@ const Orders: React.FC = () => {
               </button>
             )}
           </div>
-          <Link to="/orders/new" className="btn-primary flex items-center space-x-2">
+          <Link to="/orders/new" className="btn-primary flex items-center space-x-2 whitespace-nowrap">
             <Plus className="h-4 w-4" />
             <span>New Order</span>
           </Link>
