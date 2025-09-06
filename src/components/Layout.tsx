@@ -86,11 +86,10 @@ const Layout: React.FC = () => {
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                    isCurrentPath(item.href)
-                      ? 'bg-primary-100 text-primary-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                  className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${isCurrentPath(item.href)
+                    ? 'bg-primary-100 text-primary-900'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon className="mr-4 h-6 w-6" />
@@ -117,11 +116,10 @@ const Layout: React.FC = () => {
                   <Link
                     key={item.name}
                     to={item.href}
-                    className={`group flex items-center justify-center lg:justify-start px-2 py-2 text-sm font-medium rounded-md tap-target ${
-                      isCurrentPath(item.href)
-                        ? 'bg-primary-100 text-primary-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                    className={`group flex items-center justify-center lg:justify-start px-2 py-2 text-sm font-medium rounded-md tap-target ${isCurrentPath(item.href)
+                      ? 'bg-primary-600 text-primary-50'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
                   >
                     <item.icon className="h-5 w-5 mr-0 lg:mr-3" />
                     <span className="hidden lg:inline">{item.name}</span>

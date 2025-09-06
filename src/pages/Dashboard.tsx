@@ -98,6 +98,11 @@ const Dashboard: React.FC = () => {
     await fetchDashboardData();
   };
 
+  const headerDateDisplay = React.useMemo(
+    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
+    []
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -111,7 +116,9 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerDateDisplay}</span>
+          </h1>
         </div>
         <button
           onClick={handleRefresh}
