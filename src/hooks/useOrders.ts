@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 export interface UseOrdersOptions {
   autoRefreshInterval?: number; // in seconds, 0 means disabled
+  date?: string; // YYYY-MM-DD; optional server-side date filter
 }
 
 export interface UseOrdersReturn {
@@ -17,7 +18,8 @@ export interface UseOrdersReturn {
 
 export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
   const {
-    autoRefreshInterval = 0 // disabled by default
+    autoRefreshInterval = 0, // disabled by default
+    date
   } = options;
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -46,7 +48,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
     
     try {
       setError(null);
-      const fetchedOrders = await apiService.getOrders();
+      const fetchedOrders = await apiService.getOrders({ date });
       
       // The API service now handles response structure parsing and normalization
       // We should receive a clean array of Order objects
@@ -64,7 +66,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [date]);
 
   // Update order status via API
   const updateOrderStatus = useCallback(async (orderId: string, status: OrderStatus) => {
@@ -127,7 +129,7 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
         autoRefreshIntervalRef.current = null;
       }
     };
-  }, [autoRefreshInterval]); // Removed refreshOrders from dependencies to prevent recreating interval
+  }, [autoRefreshInterval, date]); // keep interval in sync with date filter without depending on refreshOrders
 
   // Initial setup
   useEffect(() => {

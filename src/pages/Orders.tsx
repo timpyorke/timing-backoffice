@@ -18,6 +18,7 @@ import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD or empty for all
   const [refreshing, setRefreshing] = useState(false);
 
   // Get auto refresh interval from settings
@@ -36,11 +37,20 @@ const Orders: React.FC = () => {
 
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
 
-  // Display today's date in the header
+  // Display date in the header (selected or today)
   const todayDisplay = useMemo(
     () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
     []
   );
+  const headerDateDisplay = useMemo(() => {
+    if (dateFilter) {
+      const d = new Date(dateFilter);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+      }
+    }
+    return todayDisplay;
+  }, [dateFilter, todayDisplay]);
 
 
   // Use orders hook
@@ -51,7 +61,8 @@ const Orders: React.FC = () => {
     refreshOrders,
     updateOrderStatus: realtimeUpdateOrderStatus
   } = useOrders({
-    autoRefreshInterval
+    autoRefreshInterval,
+    date: dateFilter || undefined
   });
 
   // Listen for settings changes to update auto refresh interval
@@ -183,7 +194,7 @@ const Orders: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
-          <span className="text-sm text-gray-600">Date: {todayDisplay}</span>
+          <span className="text-sm text-gray-600">Date: {headerDateDisplay}</span>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -199,6 +210,25 @@ const Orders: React.FC = () => {
               <option value="ready">Ready</option>
               <option value="completed">Completed</option>
             </select>
+          </div>
+          <div className="flex items-center space-x-2">
+            <label htmlFor="order-date" className="text-sm text-gray-600">Date:</label>
+            <input
+              id="order-date"
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="input py-1"
+            />
+            {dateFilter && (
+              <button
+                className="btn-secondary px-2 py-1 text-sm"
+                onClick={() => setDateFilter('')}
+                title="Clear date filter"
+              >
+                Clear
+              </button>
+            )}
           </div>
           <Link to="/orders/new" className="btn-primary flex items-center space-x-2">
             <Plus className="h-4 w-4" />
