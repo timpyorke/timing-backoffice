@@ -22,9 +22,8 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const {
-    orders
-  } = useOrders({});
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { orders } = useOrders({ date: todayStr });
 
   // Get recent orders (last 10)
   const recentOrders = orders.slice(0, 10);
@@ -136,9 +135,10 @@ const Dashboard: React.FC = () => {
               <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
-                  const completedRev = (todaySales as any)?.completed_revenue;
-                  const value = typeof completedRev === 'number' ? completedRev : (todaySales?.total_revenue || (todaySales as any)?.totalRevenue || 0);
-                  return `฿${Number(value).toLocaleString()}`;
+                  const ordersRevenue = Array.isArray(orders)
+                    ? orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+                    : 0;
+                  return `฿${ordersRevenue.toLocaleString()}`;
                 })()}
               </p>
             </div>

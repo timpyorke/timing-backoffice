@@ -5,18 +5,18 @@ import { Order, OrderStatus, ApiStatusUpdateResponse } from '@/types';
 
 // Type guard to check if response is nested
 function isNestedApiResponse(response: Order | ApiStatusUpdateResponse): response is ApiStatusUpdateResponse {
-  return typeof response === 'object' && 
-         response !== null && 
-         'success' in response && 
-         'data' in response && 
-         typeof (response as ApiStatusUpdateResponse).success === 'boolean';
+  return typeof response === 'object' &&
+    response !== null &&
+    'success' in response &&
+    'data' in response &&
+    typeof (response as ApiStatusUpdateResponse).success === 'boolean';
 }
 import { useLanguage } from '@/contexts/LanguageContext';
-import { 
-  ArrowLeft, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+import {
+  ArrowLeft,
+  Clock,
+  CheckCircle,
+  AlertCircle,
   Phone,
   Printer,
   Calendar,
@@ -34,7 +34,7 @@ const OrderDetails: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
   const fetchingRef = useRef(false);
-  
+
 
   const formatDate = (dateInput: string | Date | null | undefined): string => {
     if (!dateInput) return t('common.na');
@@ -60,9 +60,9 @@ const OrderDetails: React.FC = () => {
   useEffect(() => {
     const fetchOrder = async () => {
       if (!id || fetchingRef.current) return;
-      
+
       fetchingRef.current = true;
-      
+
       try {
         const fetchedOrder = await apiService.getOrder(id);
         setOrder(fetchedOrder);
@@ -83,21 +83,21 @@ const OrderDetails: React.FC = () => {
 
   const updateOrderStatus = async (newStatus: OrderStatus) => {
     if (!order) return;
-    
+
     setUpdating(true);
-    
+
     try {
       const apiResponse = await apiService.updateOrderStatus(order.id, newStatus);
-      
+
       // Extract data from nested response structure using type guard
       // Handle both nested {success, data, message} and direct Order response
-      const responseData = isNestedApiResponse(apiResponse) 
-        ? apiResponse.data 
+      const responseData = isNestedApiResponse(apiResponse)
+        ? apiResponse.data
         : apiResponse;
-      
+
       // Use the actual status from API response, not what we requested
       const actualStatus = responseData?.status || newStatus;
-      
+
       // Create completely new order object to force React re-render
       const newOrderState: Order = {
         id: String(responseData?.id || order.id),
@@ -115,15 +115,15 @@ const OrderDetails: React.FC = () => {
         ...(responseData?.original_total && { original_total: responseData.original_total }),
         ...(responseData?.discount_amount && { discount_amount: responseData.discount_amount })
       };
-      
+
       // Set the new order state
       setOrder(newOrderState);
-      
+
       // Force re-render to ensure UI updates
       setTimeout(() => {
         setRenderKey(prev => prev + 1);
       }, 50);
-      
+
       toast.success(`Order status updated to ${actualStatus}`);
     } catch (error) {
       console.error('Failed to update order status:', error);
@@ -135,7 +135,7 @@ const OrderDetails: React.FC = () => {
 
   const handlePrint = () => {
     if (!order) return;
-    
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -171,20 +171,20 @@ const OrderDetails: React.FC = () => {
         <div class="items">
           <h4>Items:</h4>
           ${(order.items || []).map((item) => {
-            const menuId = item.menu_id;
-            return `
+      const menuId = item.menu_id;
+      return `
             <div class="item">
               <span>${item.quantity}x ${item.menu_name || `Menu Item #${menuId}`}</span>
               <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
             </div>
-            ${item.customizations && Object.keys(item.customizations).length > 0 ? 
-              Object.entries(item.customizations).map(([key, values]) => 
-                values && values.length > 0 ? `<div style="margin-left: 20px; font-size: 12px; color: #666;">
+            ${item.customizations && Object.keys(item.customizations).length > 0 ?
+          Object.entries(item.customizations).map(([key, values]) =>
+            values && values.length > 0 ? `<div style="margin-left: 20px; font-size: 12px; color: #666;">
                   ${key}: ${Array.isArray(values) ? values.join(', ') : values}
                 </div>` : ''
-              ).join('') : ''
-            }`;
-          }).join('')}
+          ).join('') : ''
+        }`;
+    }).join('')}
         </div>
         
         ${order.specialInstructions ? `
@@ -377,7 +377,7 @@ const OrderDetails: React.FC = () => {
                 <span className="ml-2 capitalize">{order.status}</span>
               </div>
             </div>
-            
+
             {/* Status Timeline */}
             <div className="space-y-3">
               <div className={`flex items-center ${isStatusCompleted(order.status, 'pending') ? 'text-green-600' : 'text-gray-400'}`}>
@@ -449,7 +449,7 @@ const OrderDetails: React.FC = () => {
           {/* Order Items */}
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
-            
+
             <div className="space-y-4">
               {(!order.items || order.items.length === 0) ? (
                 <div className="text-center py-4 text-gray-500">
@@ -468,7 +468,7 @@ const OrderDetails: React.FC = () => {
                             {Object.entries(item.customizations).map(([key, values]) => {
                               // Skip empty values
                               if (!values || (Array.isArray(values) && values.length === 0) || values === '') return null;
-                              
+
                               return (
                                 <p key={key} className="text-sm text-gray-600 capitalize">
                                   <span className="font-medium">{key}:</span> {Array.isArray(values) ? values.join(', ') : values}
@@ -532,17 +532,17 @@ const OrderDetails: React.FC = () => {
         <div className="space-y-6">
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
-            
+
             <div className="space-y-3">
               <div className="flex items-center">
                 <User className="h-4 w-4 text-gray-400 mr-3" />
                 <span className="text-gray-900">{order.customer_info?.name || 'N/A'}</span>
               </div>
-              
+
               {order.customer_info?.phone && (
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 text-gray-400 mr-3" />
-                  <a 
+                  <a
                     href={`tel:${order.customer_info.phone}`}
                     className="text-primary-600 hover:text-primary-800 underline"
                   >
@@ -550,11 +550,11 @@ const OrderDetails: React.FC = () => {
                   </a>
                 </div>
               )}
-              
+
               {order.customer_info?.email && (
                 <div className="flex items-center">
                   <User className="h-4 w-4 text-gray-400 mr-3" />
-                  <a 
+                  <a
                     href={`mailto:${order.customer_info.email}`}
                     className="text-primary-600 hover:text-primary-800 underline"
                   >
@@ -567,7 +567,7 @@ const OrderDetails: React.FC = () => {
 
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
-            
+
             <div className="space-y-3">
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 text-gray-400 mr-3" />
@@ -576,7 +576,7 @@ const OrderDetails: React.FC = () => {
                   <p className="text-sm text-gray-500">{formatDateOnly(order.created_at)}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center">
                 <Clock className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
@@ -584,7 +584,7 @@ const OrderDetails: React.FC = () => {
                   <p className="text-sm text-gray-500">{formatTimeOnly(order.created_at)}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
@@ -593,26 +593,51 @@ const OrderDetails: React.FC = () => {
                 </div>
               </div>
 
-              {/* Payment image from external API */}
+              {/* Thai QR Payment styled block */}
               <div className="mt-2">
-                <p className="text-sm text-gray-900 mb-2">Payment QR</p>
-                <div className="flex">
-                  <img
-                    src={(() => {
-                      const totalAmount = getDisplayTotal();
-                      const amountParam = Number.isInteger(totalAmount)
-                        ? String(totalAmount)
-                        : String(Number(totalAmount.toFixed(2)));
-                      return `https://rub-tung.vercel.app/api/0990995156?amont=${encodeURIComponent(amountParam)}`;
-                    })()}
-                    alt="Payment QR code"
-                    className="border rounded-md max-w-xs w-full h-auto"
-                    onError={(e) => {
-                      console.error('Failed to load payment image');
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      toast.error('Unable to load payment image');
-                    }}
-                  />
+                <p className="text-sm text-gray-900 mb-4">Payment QR</p>
+                <div className="border rounded-lg overflow-hidden w-full max-w-sm bg-white">
+                  {/* Header brand bar */}
+                  <div className="bg-[#103D5B] text-white px-4 py-3 flex items-center justify-center gap-2">
+                    {/* Simple placeholder logo */}
+                    <div className="h-6 w-6 rounded bg-white/10 flex items-center justify-center text-white text-xs font-bold">QR</div>
+                    <div className="text-sm font-semibold tracking-wide">THAI QR PAYMENT</div>
+                  </div>
+                  {/* PromptPay label */}
+                  <div className="px-6 pt-5 flex justify-center">
+                    <div className="inline-flex items-center border-2 border-[#1B4E8F] px-4 py-1 rounded">
+                      <span className="text-[#1B4E8F] text-sm font-semibold mr-2">Prompt</span>
+                      <span className="bg-[#1B4E8F] text-white text-sm font-semibold px-1">Pay</span>
+                      <span className="ml-3 text-[#1B4E8F] text-xs">พร้อมเพย์</span>
+                    </div>
+                  </div>
+                  {/* QR with center logo overlay */}
+                  <div className="px-6 py-5">
+                    <div className="relative mx-auto w-full max-w-[260px] aspect-square bg-white">
+                      <img
+                        src={(() => {
+                          const totalAmount = getDisplayTotal();
+                          const amountParam = Number.isInteger(totalAmount)
+                            ? String(totalAmount)
+                            : String(Number(totalAmount.toFixed(2)));
+                          return `https://rub-tung.vercel.app/api/0990995156?amont=${encodeURIComponent(amountParam)}`;
+                        })()}
+                        alt="Thai QR Payment"
+                        className="absolute inset-0 w-full h-full object-contain select-none"
+                        onError={(e) => {
+                          console.error('Failed to load payment image');
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          toast.error('Unable to load payment image');
+                        }}
+                      />
+                      {/* Center logo overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="h-14 w-14 rounded-md bg-white border-2 border-[#103D5B] flex items-center justify-center shadow-sm">
+                          <div className="h-8 w-8 rounded-md bg-[#19B3A6] flex items-center justify-center text-white text-xs font-bold">PP</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
