@@ -98,6 +98,8 @@ const CreateOrder: React.FC = () => {
       }
       return [...prev, { menu_id: Number(menuId), quantity: 1, price: Number(menuItem.base_price), customizations: normalizeCustomizations(custom) }];
     });
+    const addedName = menuItem.name_en || menuItem.name_th || menuItem.name || `Item #${menuId}`;
+    toast.success(`${addedName} added to cart`);
   };
 
   const incrementQty = (index: number) => {
@@ -195,33 +197,6 @@ const CreateOrder: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Customer Info */}
-          <div className="card p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
-              <User className="h-5 w-5 text-gray-500" />
-              <span>Customer Information</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input className="input" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Customer name" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <div className="flex items-center">
-                  <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                  <input className="input" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="e.g. 080-000-0000" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <div className="flex items-center">
-                  <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                  <input type="email" className="input" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="email@example.com" />
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Menu Catalog */}
           <div className="card p-6">
@@ -339,27 +314,54 @@ const CreateOrder: React.FC = () => {
             )}
           </div>
 
-          {/* Notes */}
+          
+        </div>
+
+        {/* Cart & Summary */}
+        <div className="space-y-6">
+          {/* Customer Info (moved here) */}
+          <div className="card p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
+              <User className="h-5 w-5 text-gray-500" />
+              <span>Customer Information</span>
+            </h2>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input className="input" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Customer name" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <div className="flex items-center">
+                  <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                  <input className="input" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="e.g. 080-000-0000" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="flex items-center">
+                  <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                  <input type="email" className="input" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="email@example.com" />
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Notes - single field below Customer Info */}
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
               <StickyNote className="h-5 w-5 text-gray-500" />
               <span>Notes</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
-                <textarea className="input h-24" value={specialInstructions} onChange={e => setSpecialInstructions(e.target.value)} placeholder="e.g. Less sugar, no ice" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
-                <textarea className="input h-24" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes" />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea
+                className="input h-24"
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Add any notes for this order"
+              />
             </div>
           </div>
-        </div>
-
-        {/* Cart & Summary */}
-        <div className="space-y-6">
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Cart</h2>
             {items.length === 0 ? (
