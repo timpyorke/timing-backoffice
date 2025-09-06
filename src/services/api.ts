@@ -373,7 +373,7 @@ class ApiService {
       customizations: normalizeCustomizations(it.customizations as any),
     }));
 
-    const total = items.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
+    const originalTotal = items.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.quantity || 0)), 0);
 
     const requestBody: any = {
       customer_info: payload.customer_info,
@@ -384,9 +384,16 @@ class ApiService {
       notes: payload.notes,
       specialInstructions: payload.specialInstructions,
       estimatedTime: payload.estimatedTime,
-      discount_amount: payload.discount_amount,
+      // Persist complete discount context
+      discount_amount: typeof payload.discount_amount === 'number' ? Number(payload.discount_amount.toFixed(2)) : 0,
+      discount_code: payload.discount_code,
+      original_total: typeof payload.original_total === 'number' ? Number(payload.original_total.toFixed(2)) : Number(originalTotal.toFixed(2)),
       status: 'pending',
-      total,
+      // Send final total after discount
+      total: Number((
+        (typeof payload.original_total === 'number' ? payload.original_total : originalTotal) -
+        (typeof payload.discount_amount === 'number' ? payload.discount_amount : 0)
+      ).toFixed(2)),
     };
 
     const result = await this.request<any>(`/admin/orders`, {
