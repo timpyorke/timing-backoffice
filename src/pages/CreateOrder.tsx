@@ -27,6 +27,7 @@ const CreateOrder: React.FC = () => {
   const [items, setItems] = useState<LineItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedByMenuId, setSelectedByMenuId] = useState<Record<string, Record<string, any>>>({});
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Display current order date on the page
   const orderDateDisplay = useMemo(
@@ -55,11 +56,25 @@ const CreateOrder: React.FC = () => {
     return m ? Number(m.base_price) : 0;
   };
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    menu.forEach(m => {
+      const c = (m.category_en || m.category || m.category_th || 'Other').trim();
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort();
+  }, [menu]);
+
   const filteredMenu = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return menu;
-    return menu.filter(m => (m.name_en || m.name_th || m.name || '').toLowerCase().includes(q));
-  }, [menu, search]);
+    return menu.filter(m => {
+      const name = (m.name_en || m.name_th || m.name || '').toLowerCase();
+      const matchesSearch = !q || name.includes(q);
+      const cat = (m.category_en || m.category || m.category_th || 'Other').trim();
+      const matchesCat = selectedCategory === 'All' || cat === selectedCategory;
+      return matchesSearch && matchesCat;
+    });
+  }, [menu, search, selectedCategory]);
 
   const normalizeCustomizations = (c?: Record<string, any>) => {
     if (!c) return {} as Record<string, any>;
@@ -183,7 +198,7 @@ const CreateOrder: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24 lg:pb-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <button onClick={() => navigate(-1)} className="btn-secondary flex items-center space-x-2">
@@ -197,14 +212,14 @@ const CreateOrder: React.FC = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
 
           {/* Menu Catalog */}
           <div className="card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
-              <div className="relative w-64">
+              <div className="relative w-full md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   className="input pl-9"
@@ -213,6 +228,28 @@ const CreateOrder: React.FC = () => {
                   onChange={e => setSearch(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Category Chips */}
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('All')}
+                className={`px-3 py-1 rounded-full border text-sm ${selectedCategory === 'All' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white text-gray-700'}`}
+              >
+                All
+              </button>
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1 rounded-full border text-sm ${selectedCategory === cat ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white text-gray-700'}`}
+                  title={cat}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
 
             {loading ? (
@@ -318,9 +355,10 @@ const CreateOrder: React.FC = () => {
 
 
         </div>
-
-        {/* Cart & Summary */}
-        <div className="space-y-6">
+      
+        {/* Cart & Summary */
+        }
+        <div className="space-y-6 self-start">
           {/* Customer Info (moved here) */}
           <div className="card p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
@@ -364,12 +402,12 @@ const CreateOrder: React.FC = () => {
               />
             </div>
           </div>
-          <div className="card p-6">
+          <div className="card p-6 lg:sticky lg:top-4">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Cart</h2>
             {items.length === 0 ? (
               <div className="text-sm text-gray-600">No items in the cart. Add from the menu.</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 lg:max-h-[60vh] lg:overflow-y-auto pr-1">
                 {items.map((it, idx) => {
                   const m = menu.find(mi => Number(mi.id) === Number(it.menu_id));
                   const name = m ? (m.name_en || m.name_th || m.name) : `Item #${it.menu_id}`;
@@ -390,11 +428,11 @@ const CreateOrder: React.FC = () => {
                           <div className="text-xs text-gray-500">฿{unit.toFixed(2)} each</div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <button type="button" className="btn-secondary px-2" onClick={() => decrementQty(idx)}>
+                          <button type="button" aria-label="Decrease quantity" className="btn-secondary px-3 py-2" onClick={() => decrementQty(idx)}>
                             <Minus className="h-4 w-4" />
                           </button>
-                          <span className="w-6 text-center">{it.quantity}</span>
-                          <button type="button" className="btn-secondary px-2" onClick={() => incrementQty(idx)}>
+                          <span className="w-8 text-center">{it.quantity}</span>
+                          <button type="button" aria-label="Increase quantity" className="btn-secondary px-3 py-2" onClick={() => incrementQty(idx)}>
                             <Plus className="h-4 w-4" />
                           </button>
                         </div>
@@ -487,6 +525,24 @@ const CreateOrder: React.FC = () => {
                 <span>{submitting ? 'Creating...' : 'Place Order'}</span>
               </button>
             </div>
+          </div>
+        </div>
+        
+        {/* Mobile bottom bar with total + submit */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 border-t bg-white p-3 shadow-md">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="text-sm">
+              <div className="text-gray-600">Total</div>
+              <div className="font-semibold text-gray-900">฿{grandTotal.toFixed(2)}</div>
+            </div>
+            <button
+              type="submit"
+              disabled={!canSubmit || submitting}
+              className="btn-primary flex-1 flex items-center justify-center space-x-2"
+            >
+              <Save className={`h-4 w-4 ${submitting ? 'animate-spin' : ''}`} />
+              <span>{submitting ? 'Creating...' : 'Place Order'}</span>
+            </button>
           </div>
         </div>
       </form>
