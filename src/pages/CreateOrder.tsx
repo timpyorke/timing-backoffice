@@ -28,6 +28,12 @@ const CreateOrder: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedByMenuId, setSelectedByMenuId] = useState<Record<string, Record<string, any>>>({});
 
+  // Display current order date on the page
+  const orderDateDisplay = useMemo(
+    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
+    []
+  );
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -178,6 +184,9 @@ const CreateOrder: React.FC = () => {
             <span>Back</span>
           </button>
           <h1 className="text-2xl font-bold text-gray-900">Create Order</h1>
+        </div>
+        <div className="text-sm text-gray-600">
+          Order Date: {orderDateDisplay}
         </div>
       </div>
 

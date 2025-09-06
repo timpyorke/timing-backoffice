@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { OrderStatus } from '@/types';
 import { useOrders } from '@/hooks/useOrders';
+import { safeStorage } from '@/utils/safeStorage';
 import {
   RefreshCw,
   Clock,
@@ -34,6 +35,12 @@ const Orders: React.FC = () => {
   };
 
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
+
+  // Display today's date in the header
+  const todayDisplay = useMemo(
+    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
+    []
+  );
 
 
   // Use orders hook
@@ -176,6 +183,7 @@ const Orders: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">Orders Dashboard</h1>
+          <span className="text-sm text-gray-600">Date: {todayDisplay}</span>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -294,16 +302,18 @@ const Orders: React.FC = () => {
               })}
             </div>
 
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-bold text-gray-900">
+            <div className="mb-4">
+              <div className="text-lg font-bold text-gray-900">
                 Total: ฿{Number(order.total).toFixed(2)}
-              </span>
-              <span className="text-sm text-gray-500">
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
                 Order at: {order.created_at ? (() => {
                   const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;
-                  return isNaN(date.getTime()) ? 'N/A' : date.toLocaleTimeString('th-TH');
+                  return isNaN(date.getTime())
+                    ? 'N/A'
+                    : date.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
                 })() : 'N/A'}
-              </span>
+              </div>
             </div>
 
 
@@ -324,8 +334,8 @@ const Orders: React.FC = () => {
                     onClick={() => updateOrderStatus(order.id, nextStatus)}
                     disabled={isUpdating}
                     className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
-                        ? 'bg-gray-400 text-white cursor-not-allowed'
-                        : getStatusButtonColor(order.status)
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : getStatusButtonColor(order.status)
                       }`}
                   >
                     {isUpdating ? (
@@ -367,4 +377,3 @@ const Orders: React.FC = () => {
 };
 
 export default Orders;
-import { safeStorage } from '@/utils/safeStorage';
