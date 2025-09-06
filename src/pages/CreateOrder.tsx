@@ -276,12 +276,12 @@ const CreateOrder: React.FC = () => {
                   const hasCustoms = m.customizations && Object.keys(m.customizations).length > 0;
                   return (
                     <div key={m.id} className="border rounded-lg bg-white flex flex-col overflow-hidden h-full">
-                      <div className="h-36 bg-gray-100">
+                      <div className="h-36 bg-gray-100 overflow-hidden">
                         {m.image_url ? (
                           <img
                             src={m.image_url}
                             alt={m.name_en || m.name_th || m.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover object-center"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (

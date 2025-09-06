@@ -225,7 +225,7 @@ const Menu: React.FC = () => {
                 <img
                   src={item.image_url}
                   alt={getMenuItemName(item, language)}
-                  className="w-full h-full object-cover transition-transform hover:scale-105"
+                  className="w-full h-full object-cover object-center transition-transform hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

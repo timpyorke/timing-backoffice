@@ -135,7 +135,11 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.total_revenue || todaySales?.totalRevenue || 0).toLocaleString()}
+                {(() => {
+                  const completedRev = (todaySales as any)?.completed_revenue;
+                  const value = typeof completedRev === 'number' ? completedRev : (todaySales?.total_revenue || (todaySales as any)?.totalRevenue || 0);
+                  return `฿${Number(value).toLocaleString()}`;
+                })()}
               </p>
             </div>
           </div>
@@ -150,7 +154,7 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Today's Orders</p>
               <p className="text-2xl font-bold text-gray-900">
-                {todaySales?.total_orders || todaySales?.totalOrders || 0}
+                {todaySales?.completed_orders ?? todaySales?.total_orders ?? (todaySales as any)?.totalOrders ?? 0}
               </p>
             </div>
           </div>
@@ -165,7 +169,14 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Avg. Order Value</p>
               <p className="text-2xl font-bold text-gray-900">
-                ฿{(todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0)).toFixed(0)}
+                {(() => {
+                  const completedRev = (todaySales as any)?.completed_revenue;
+                  const completed = todaySales?.completed_orders;
+                  const avg = (typeof completedRev === 'number' && completed && completed > 0)
+                    ? (completedRev / completed)
+                    : (todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0));
+                  return `฿${Number(avg).toFixed(0)}`;
+                })()}
               </p>
             </div>
           </div>

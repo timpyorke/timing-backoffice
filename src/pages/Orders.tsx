@@ -162,6 +162,12 @@ const Orders: React.FC = () => {
     }
   };
 
+  const canCancel = (status: OrderStatus) => status !== 'completed' && status !== 'cancelled';
+  const handleCancel = async (orderId: string) => {
+    if (!confirm('Cancel this order? This cannot be undone.')) return;
+    await updateOrderStatus(orderId, 'cancelled');
+  };
+
   // Debug logging for order display issues
   console.log(`Orders Component: Loaded ${orders?.length || 0} orders, filtering by "${statusFilter}"`);
 
@@ -374,24 +380,38 @@ const Orders: React.FC = () => {
               {(() => {
                 const nextStatus = getNextStatus(order.status);
                 const isUpdating = updatingOrderIds.has(order.id);
-                return nextStatus && (
-                  <button
-                    onClick={() => updateOrderStatus(order.id, nextStatus)}
-                    disabled={isUpdating}
-                    className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
-                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                      : getStatusButtonColor(order.status)
-                      }`}
-                  >
-                    {isUpdating ? (
-                      <span className="flex items-center justify-center">
-                        <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                        <span className="truncate">Updating...</span>
-                      </span>
-                    ) : (
-                      <span className="truncate">{getStatusAction(order.status)}</span>
+                return (
+                  <>
+                    {canCancel(order.status) && (
+                      <button
+                        onClick={() => handleCancel(order.id)}
+                        disabled={isUpdating}
+                        className={`px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                        title="Cancel order"
+                      >
+                        Cancel
+                      </button>
                     )}
-                  </button>
+                    {nextStatus && (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, nextStatus)}
+                        disabled={isUpdating}
+                        className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : getStatusButtonColor(order.status)
+                          }`}
+                      >
+                        {isUpdating ? (
+                          <span className="flex items-center justify-center">
+                            <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                            <span className="truncate">Updating...</span>
+                          </span>
+                        ) : (
+                          <span className="truncate">{getStatusAction(order.status)}</span>
+                        )}
+                      </button>
+                    )}
+                  </>
                 );
               })()}
             </div>

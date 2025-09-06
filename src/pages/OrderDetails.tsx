@@ -235,6 +235,7 @@ const OrderDetails: React.FC = () => {
       case 'preparing': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'ready': return 'bg-green-100 text-green-800 border-green-200';
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -245,6 +246,7 @@ const OrderDetails: React.FC = () => {
       case 'preparing': return <Clock className="h-5 w-5" />;
       case 'ready': return <CheckCircle className="h-5 w-5" />;
       case 'completed': return <CheckCircle className="h-5 w-5" />;
+      case 'cancelled': return <AlertCircle className="h-5 w-5" />;
       default: return <AlertCircle className="h-5 w-5" />;
     }
   };
@@ -404,28 +406,43 @@ const OrderDetails: React.FC = () => {
               const currentStatus = order.status;
               const nextStatus = getNextStatus(currentStatus);
               const buttonText = getStatusAction(currentStatus);
-              
-              return nextStatus ? (
-                <div key={`button-${currentStatus}-${renderKey}`} className="mt-6 hidden lg:block">
-                  <button
-                    onClick={() => updateOrderStatus(nextStatus)}
-                    disabled={updating}
-                    className={`w-full px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(currentStatus)}`}
-                  >
-                    {updating ? (
-                      <span className="flex items-center justify-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Updating...
-                      </span>
-                    ) : (
-                      buttonText
-                    )}
-                  </button>
+              const canCancel = currentStatus !== 'completed' && currentStatus !== 'cancelled';
+              return (
+                <div key={`button-${currentStatus}-${renderKey}`} className="mt-6 hidden lg:flex gap-3">
+                  {canCancel && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Cancel this order? This cannot be undone.')) {
+                          updateOrderStatus('cancelled');
+                        }
+                      }}
+                      disabled={updating}
+                      className={`px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 bg-red-600 hover:bg-red-700 text-white`}
+                    >
+                      {updating ? 'Cancelling...' : 'Cancel Order'}
+                    </button>
+                  )}
+                  {nextStatus && (
+                    <button
+                      onClick={() => updateOrderStatus(nextStatus)}
+                      disabled={updating}
+                      className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors disabled:opacity-50 ${getStatusButtonColor(currentStatus)}`}
+                    >
+                      {updating ? (
+                        <span className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Updating...
+                        </span>
+                      ) : (
+                        buttonText
+                      )}
+                    </button>
+                  )}
                 </div>
-              ) : null;
+              );
             })()}
           </div>
 
@@ -618,29 +635,47 @@ const OrderDetails: React.FC = () => {
         const currentStatus = order.status;
         const nextStatus = getNextStatus(currentStatus);
         const buttonText = getStatusAction(currentStatus);
-        return nextStatus ? (
+        const canCancel = currentStatus !== 'completed' && currentStatus !== 'cancelled';
+        return (
           <div className="fixed inset-x-0 bottom-0 z-20 bg-white/95 backdrop-blur border-t border-gray-200 shadow-sm lg:hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-3">
-              <button
-                onClick={() => updateOrderStatus(nextStatus)}
-                disabled={updating}
-                className={`w-full tap-target rounded-md font-medium transition-colors disabled:opacity-50 px-4 py-3 ${getStatusButtonColor(currentStatus)}`}
-              >
-                {updating ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Updating...
-                  </span>
-                ) : (
-                  buttonText
+              <div className="flex gap-3">
+                {canCancel && (
+                  <button
+                    onClick={() => {
+                      if (confirm('Cancel this order? This cannot be undone.')) {
+                        updateOrderStatus('cancelled');
+                      }
+                    }}
+                    disabled={updating}
+                    className="tap-target rounded-md font-medium px-4 py-3 bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+                  >
+                    {updating ? 'Cancelling...' : 'Cancel'}
+                  </button>
                 )}
-              </button>
+                {nextStatus && (
+                  <button
+                    onClick={() => updateOrderStatus(nextStatus)}
+                    disabled={updating}
+                    className={`flex-1 tap-target rounded-md font-medium transition-colors disabled:opacity-50 px-4 py-3 ${getStatusButtonColor(currentStatus)}`}
+                  >
+                    {updating ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Updating...
+                      </span>
+                    ) : (
+                      buttonText
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        ) : null;
+        );
       })()}
     </div>
   );

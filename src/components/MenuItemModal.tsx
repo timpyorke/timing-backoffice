@@ -407,7 +407,7 @@ const MenuItemModal: React.FC<MenuItemModalProps> = ({
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          className="h-20 w-20 object-cover rounded-lg border-2 border-gray-200"
+                          className="h-20 w-20 object-cover object-center rounded-lg border-2 border-gray-200"
                         />
                         <button
                           type="button"
