@@ -153,7 +153,10 @@ const CreateOrder: React.FC = () => {
         })),
         notes: notes.trim() || undefined,
         specialInstructions: specialInstructions.trim() || undefined,
-        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+        // Always include discount data; API can store 0 if no discount
+        discount_amount: Number(discountAmount.toFixed(2)),
+        discount_code: discountCode.trim() || undefined,
+        original_total: Number(total.toFixed(2)),
       };
 
       const created: Order = await apiService.createOrder(payload);

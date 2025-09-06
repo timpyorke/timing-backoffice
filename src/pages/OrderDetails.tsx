@@ -195,6 +195,16 @@ const OrderDetails: React.FC = () => {
         ` : ''}
         
         <div class="total">
+          <div class="item" style="font-weight: normal;">
+            <span>Subtotal:</span>
+            <span>฿${getSubtotal().toFixed(2)}</span>
+          </div>
+          ${getDiscountAmount() > 0 ? `
+          <div class="item" style="color: #166534; font-weight: normal;">
+            <span>Discount:</span>
+            <span>-฿${getDiscountAmount().toFixed(2)}</span>
+          </div>
+          ` : ''}
           <div class="item">
             <span>Total Amount:</span>
             <span>฿${getDisplayTotal().toFixed(2)}</span>
@@ -273,22 +283,48 @@ const OrderDetails: React.FC = () => {
     return currentIndex >= targetIndex;
   };
 
-  // Calculate total from items if total is missing or incorrect
-  const getDisplayTotal = (): number => {
-    if (order?.total && Number(order.total) > 0) {
-      return Number(order.total);
+  // Calculate subtotal, discount, and grand total similar to checkout page
+  const getSubtotal = (): number => {
+    // Prefer original_total if provided by API
+    const original = order?.original_total;
+    if (original !== undefined && original !== null) {
+      const n = Number(original);
+      if (!isNaN(n) && n >= 0) return n;
     }
-    
+
     // Fallback: calculate from items
     if (order?.items && Array.isArray(order.items)) {
       return order.items.reduce((sum, item) => {
         const price = Number(item.price || 0);
         const quantity = Number(item.quantity || 0);
-        return sum + (price * quantity);
+        return sum + price * quantity;
       }, 0);
     }
-    
     return 0;
+  };
+
+  const getDiscountAmount = (): number => {
+    const disc = order?.discount_amount;
+    if (disc === undefined || disc === null) return 0;
+    const n = Number(disc);
+    return isNaN(n) ? 0 : Math.max(0, n);
+  };
+
+  const getDisplayTotal = (): number => {
+    const subtotal = getSubtotal();
+    const discount = getDiscountAmount();
+    // If discount exists, always use subtotal - discount to mirror checkout
+    if (discount > 0) {
+      const total = Math.max(0, subtotal - discount);
+      return Number(total.toFixed(2));
+    }
+    // Otherwise, use API total if valid
+    if (order?.total !== undefined && order?.total !== null) {
+      const t = Number(order.total);
+      if (!isNaN(t) && t >= 0) return Number(t.toFixed(2));
+    }
+    // Fallback to subtotal
+    return Number(subtotal.toFixed(2));
   };
 
   if (loading) {
@@ -435,8 +471,18 @@ const OrderDetails: React.FC = () => {
               )}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
+            <div className="mt-6 pt-4 border-t border-gray-200 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal</span>
+                <span>฿{getSubtotal().toFixed(2)}</span>
+              </div>
+              {getDiscountAmount() > 0 && (
+                <div className="flex justify-between text-sm text-green-700">
+                  <span>Discount</span>
+                  <span>-฿{getDiscountAmount().toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2">
                 <span className="text-lg font-semibold text-gray-900">Total Amount</span>
                 <span className="text-lg font-bold text-gray-900">฿{getDisplayTotal().toFixed(2)}</span>
               </div>

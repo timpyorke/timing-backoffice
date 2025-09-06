@@ -303,9 +303,24 @@ const Orders: React.FC = () => {
             </div>
 
             <div className="mb-4">
-              <div className="text-lg font-bold text-gray-900">
-                Total: ฿{Number(order.total).toFixed(2)}
-              </div>
+              {(() => {
+                const original = order?.original_total;
+                const discountRaw = order?.discount_amount;
+                const hasOriginal = original !== undefined && original !== null && !isNaN(Number(original));
+                const discount = discountRaw !== undefined && discountRaw !== null ? Number(discountRaw) : 0;
+                const subtotal = hasOriginal
+                  ? Number(original)
+                  : (Array.isArray(order.items) ? order.items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0) : 0);
+                const totalFromOrder = order?.total !== undefined && order?.total !== null ? Number(order.total) : NaN;
+                const displayTotal = !isNaN(totalFromOrder) && totalFromOrder >= 0
+                  ? totalFromOrder
+                  : Number((subtotal - Math.max(0, Number.isNaN(discount) ? 0 : discount)).toFixed(2));
+                return (
+                  <div className="text-lg font-bold text-gray-900">
+                    Total: ฿{displayTotal.toFixed(2)}
+                  </div>
+                );
+              })()}
               <div className="text-sm text-gray-500 mt-1">
                 Order at: {order.created_at ? (() => {
                   const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;

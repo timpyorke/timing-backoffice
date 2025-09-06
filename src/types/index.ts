@@ -76,6 +76,8 @@ export interface CreateOrderInput {
   specialInstructions?: string;
   estimatedTime?: number;
   discount_amount?: number;
+  discount_code?: string;
+  original_total?: number;
 }
 
 export interface Customization {
