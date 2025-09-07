@@ -368,49 +368,67 @@ const Orders: React.FC = () => {
             </div>
 
 
-            <div className="flex space-x-2 min-h-[2.5rem] mt-auto">
-              <Link
-                to={`/orders/${order.id}`}
-                className="btn-secondary flex-1 flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
-              >
-                <Eye className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">View</span>
-              </Link>
-
+            <div className="mt-auto">
               {(() => {
                 const nextStatus = getNextStatus(order.status);
                 const isUpdating = updatingOrderIds.has(order.id);
+                const showCancel = canCancel(order.status);
+                const hasActions = showCancel || !!nextStatus;
+
+                if (!hasActions) {
+                  return (
+                    <Link
+                      to={`/orders/${order.id}`}
+                      className="btn-secondary w-full flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
+                    >
+                      <Eye className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">View</span>
+                    </Link>
+                  );
+                }
+
                 return (
                   <>
-                    {canCancel(order.status) && (
-                      <button
-                        onClick={() => handleCancel(order.id)}
-                        disabled={isUpdating}
-                        className={`px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-                        title="Cancel order"
+                    <div>
+                      <Link
+                        to={`/orders/${order.id}`}
+                        className="btn-secondary w-full flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
                       >
-                        Cancel
-                      </button>
-                    )}
-                    {nextStatus && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, nextStatus)}
-                        disabled={isUpdating}
-                        className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
-                          ? 'bg-gray-400 text-white cursor-not-allowed'
-                          : getStatusButtonColor(order.status)
-                          }`}
-                      >
-                        {isUpdating ? (
-                          <span className="flex items-center justify-center">
-                            <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                            <span className="truncate">Updating...</span>
-                          </span>
-                        ) : (
-                          <span className="truncate">{getStatusAction(order.status)}</span>
-                        )}
-                      </button>
-                    )}
+                        <Eye className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">View</span>
+                      </Link>
+                    </div>
+                    <div className="mt-2 flex space-x-2 min-h-[2.5rem]">
+                      {showCancel && (
+                        <button
+                          onClick={() => handleCancel(order.id)}
+                          disabled={isUpdating}
+                          className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                          title="Cancel order"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      {nextStatus && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, nextStatus)}
+                          disabled={isUpdating}
+                          className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating
+                            ? 'bg-gray-400 text-white cursor-not-allowed'
+                            : getStatusButtonColor(order.status)
+                            }`}
+                        >
+                          {isUpdating ? (
+                            <span className="flex items-center justify-center">
+                              <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                              <span className="truncate">Updating...</span>
+                            </span>
+                          ) : (
+                            <span className="truncate">{getStatusAction(order.status)}</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </>
                 );
               })()}
