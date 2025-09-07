@@ -595,9 +595,10 @@ const OrderDetails: React.FC = () => {
               </div>
 
               {/* Thai QR Payment styled block */}
-              <div className="mt-2">
-                <p className="text-sm text-gray-900 mb-4">Payment QR</p>
-                <div className="border rounded-lg overflow-hidden w-full max-w-sm bg-white">
+              <div className="mt-2 flex flex-col items-center">
+                <div className="h-px w-full max-w-sm bg-gray-200 mb-3"></div>
+                <p className="text-base md:text-lg font-bold text-gray-900 text-center mb-3">Payment QR</p>
+                <div className="border rounded-lg overflow-hidden w-full max-w-sm bg-white mx-auto">
                   {/* Header brand bar */}
                   <div className="bg-[#103D5B] text-white px-4 py-3 flex items-center justify-center gap-2">
                     {/* Simple placeholder logo */}
