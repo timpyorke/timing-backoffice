@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 import { MenuItem } from '@/types';
-import { 
-  Plus, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  Edit2,
+  Trash2,
   Eye,
   EyeOff,
   Search,
@@ -32,7 +32,7 @@ const Menu: React.FC = () => {
     try {
       const response = await apiService.getMenuItems();
       console.log('API Response:', response); // Debug log
-      
+
       // Handle different response structures
       let items: MenuItem[] = [];
       if (Array.isArray(response)) {
@@ -51,7 +51,7 @@ const Menu: React.FC = () => {
         console.warn('Unexpected response type:', typeof response);
         items = [];
       }
-      
+
       setMenuItems(items);
       setApiError(false);
     } catch (error) {
@@ -100,7 +100,7 @@ const Menu: React.FC = () => {
         ...item,
         active: !item.active
       });
-      setMenuItems(prev => 
+      setMenuItems(prev =>
         prev.map(i => i.id === item.id ? updatedItem : i)
       );
       toast.success(`${item.name} is now ${!item.active ? t('menu.available') : t('menu.unavailable')}`);
@@ -114,7 +114,7 @@ const Menu: React.FC = () => {
     try {
       if (editingItem) {
         const updatedItem = await apiService.updateMenuItem(editingItem.id, itemData);
-        setMenuItems(prev => 
+        setMenuItems(prev =>
           prev.map(i => i.id === editingItem.id ? updatedItem : i)
         );
         toast.success(t('common.success'));
@@ -131,7 +131,7 @@ const Menu: React.FC = () => {
     }
   };
 
-  const categories = Array.isArray(menuItems) ? [...new Set(menuItems.map(item => 
+  const categories = Array.isArray(menuItems) ? [...new Set(menuItems.map(item =>
     getMenuItemCategory(item, language)
   ).filter(category => category))] : [];
 
@@ -139,14 +139,14 @@ const Menu: React.FC = () => {
     const name = getMenuItemName(item, language);
     const description = getMenuItemDescription(item, language);
     const category = getMenuItemCategory(item, language);
-    
+
     const matchesSearch = (name && name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (description && description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (description && description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === 'all' || category === categoryFilter;
-    const matchesAvailability = availabilityFilter === 'all' || 
-                               (availabilityFilter === 'available' && item.active) ||
-                               (availabilityFilter === 'unavailable' && !item.active);
-    
+    const matchesAvailability = availabilityFilter === 'all' ||
+      (availabilityFilter === 'available' && item.active) ||
+      (availabilityFilter === 'unavailable' && !item.active);
+
     return matchesSearch && matchesCategory && matchesAvailability;
   }) : [];
 
@@ -185,7 +185,7 @@ const Menu: React.FC = () => {
               className="input pl-10"
             />
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Filter className="h-4 w-4 text-gray-500" />
             <select
@@ -199,7 +199,7 @@ const Menu: React.FC = () => {
               ))}
             </select>
           </div>
-          
+
           <select
             value={availabilityFilter}
             onChange={(e) => setAvailabilityFilter(e.target.value)}
@@ -209,7 +209,7 @@ const Menu: React.FC = () => {
             <option value="available">{t('menu.availableOnly')}</option>
             <option value="unavailable">{t('menu.unavailableOnly')}</option>
           </select>
-          
+
           <div className="text-sm text-gray-500 flex items-center">
             {filteredItems.length} of {menuItems.length} items
           </div>
@@ -250,7 +250,7 @@ const Menu: React.FC = () => {
                   <span className="text-gray-400 text-xs">No Image</span>
                 </div>
               )}
-              
+
               {/* Availability overlay */}
               {!item.active && (
                 <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center backdrop-blur-sm">
@@ -270,7 +270,7 @@ const Menu: React.FC = () => {
                   ฿{formatPrice(Number(item.base_price))}
                 </span>
               </div>
-              
+
               {(() => {
                 const description = getMenuItemDescription(item, language);
                 return description && (
@@ -279,7 +279,7 @@ const Menu: React.FC = () => {
                   </p>
                 );
               })()}
-              
+
               <div className="flex items-center justify-between mb-4">
                 <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
                   {getMenuItemCategory(item, language)}
@@ -322,11 +322,10 @@ const Menu: React.FC = () => {
               <div className="mt-auto flex space-x-2">
                 <button
                   onClick={() => handleToggleAvailability(item)}
-                  className={`flex-1 btn tap-target ${
-                    item.active 
-                      ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-                      : 'bg-green-100 text-green-700 hover:bg-green-200'
-                  }`}
+                  className={`flex-1 btn tap-target ${item.active
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
                 >
                   {item.active ? (
                     <>
@@ -340,17 +339,17 @@ const Menu: React.FC = () => {
                     </>
                   )}
                 </button>
-                
+
                 <button
                   onClick={() => handleEdit(item)}
-                  className="p-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 tap-target"
+                  className="p-2 rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 tap-target inline-flex items-center justify-center"
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
-                
+
                 <button
                   onClick={() => handleDelete(item)}
-                  className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 tap-target"
+                  className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 tap-target inline-flex items-center justify-center"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
