@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatPrice } from '@/utils/format';
 import { Order } from '@/types';
 import { Clock, User, Phone, CheckCircle } from 'lucide-react';
 
@@ -173,7 +174,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
                 )}
               </div>
               <span className="font-medium text-gray-900">
-                ฿{(item.price * item.quantity).toFixed(2)}
+                ฿{formatPrice(item.price * item.quantity)}
               </span>
             </div>
           ))}
@@ -192,7 +193,7 @@ const OrderTracking: React.FC<OrderTrackingProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-lg font-bold text-gray-900">Total</span>
             <span className="text-lg font-bold text-green-600">
-              ฿{Number(order.total).toFixed(2)}
+              ฿{formatPrice(Number(order.total))}
             </span>
           </div>
         </div>

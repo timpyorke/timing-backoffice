@@ -24,6 +24,7 @@ import {
   User
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPrice } from '@/utils/format';
 
 const OrderDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -175,7 +176,7 @@ const OrderDetails: React.FC = () => {
       return `
             <div class="item">
               <span>${item.quantity}x ${item.menu_name || `Menu Item #${menuId}`}</span>
-              <span>฿${(Number(item.price) * item.quantity).toFixed(2)}</span>
+              <span>฿${formatPrice(Number(item.price) * item.quantity)}</span>
             </div>
             ${item.customizations && Object.keys(item.customizations).length > 0 ?
           Object.entries(item.customizations).map(([key, values]) =>
@@ -197,17 +198,17 @@ const OrderDetails: React.FC = () => {
         <div class="total">
           <div class="item" style="font-weight: normal;">
             <span>Subtotal:</span>
-            <span>฿${getSubtotal().toFixed(2)}</span>
+            <span>฿${formatPrice(getSubtotal())}</span>
           </div>
           ${getDiscountAmount() > 0 ? `
           <div class="item" style="color: #166534; font-weight: normal;">
             <span>Discount:</span>
-            <span>-฿${getDiscountAmount().toFixed(2)}</span>
+            <span>-฿${formatPrice(getDiscountAmount())}</span>
           </div>
           ` : ''}
           <div class="item">
             <span>Total Amount:</span>
-            <span>฿${getDisplayTotal().toFixed(2)}</span>
+            <span>฿${formatPrice(getDisplayTotal())}</span>
           </div>
         </div>
         
@@ -479,8 +480,8 @@ const OrderDetails: React.FC = () => {
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">฿{(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</p>
-                        <p className="text-sm text-gray-500">฿{Number(item.price || 0).toFixed(2)} each</p>
+                        <p className="font-medium text-gray-900">฿{formatPrice(Number(item.price || 0) * Number(item.quantity || 0))}</p>
+                        <p className="text-sm text-gray-500">฿{formatPrice(Number(item.price || 0))} each</p>
                       </div>
                     </div>
                   </div>
@@ -491,17 +492,17 @@ const OrderDetails: React.FC = () => {
             <div className="mt-6 pt-4 border-t border-gray-200 space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Subtotal</span>
-                <span>฿{getSubtotal().toFixed(2)}</span>
+                <span>฿{formatPrice(getSubtotal())}</span>
               </div>
               {getDiscountAmount() > 0 && (
                 <div className="flex justify-between text-sm text-green-700">
                   <span>Discount</span>
-                  <span>-฿{getDiscountAmount().toFixed(2)}</span>
+                  <span>-฿{formatPrice(getDiscountAmount())}</span>
                 </div>
               )}
               <div className="flex justify-between items-center pt-2">
                 <span className="text-lg font-semibold text-gray-900">Total Amount</span>
-                <span className="text-lg font-bold text-gray-900">฿{getDisplayTotal().toFixed(2)}</span>
+                <span className="text-lg font-bold text-gray-900">฿{formatPrice(getDisplayTotal())}</span>
               </div>
             </div>
           </div>
