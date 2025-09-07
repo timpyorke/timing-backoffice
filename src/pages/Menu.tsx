@@ -15,6 +15,7 @@ import MenuItemModal from '@/components/MenuItemModal';
 import NoBackendMessage from '@/components/NoBackendMessage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getMenuItemName, getMenuItemDescription, getMenuItemCategory } from '@/utils/localization';
+import { formatPrice } from '@/utils/format';
 
 const Menu: React.FC = () => {
   const { t, language } = useLanguage();
@@ -266,7 +267,7 @@ const Menu: React.FC = () => {
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold text-gray-900 text-lg">{getMenuItemName(item, language)}</h3>
                 <span className="text-lg font-bold text-primary-600">
-                  ฿{Number(item.base_price).toFixed(2)}
+                  ฿{formatPrice(Number(item.base_price))}
                 </span>
               </div>
               

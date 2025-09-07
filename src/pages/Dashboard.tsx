@@ -15,6 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
+import { formatPrice } from '@/utils/format';
 
 const Dashboard: React.FC = () => {
   const [, setSalesData] = useState<SalesInsights | null>(null);
@@ -145,7 +146,7 @@ const Dashboard: React.FC = () => {
                   const ordersRevenue = Array.isArray(orders)
                     ? orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (Number(o.total) || 0), 0)
                     : 0;
-                  return `฿${ordersRevenue.toLocaleString()}`;
+                  return `฿${formatPrice(ordersRevenue)}`;
                 })()}
               </p>
             </div>
@@ -182,7 +183,7 @@ const Dashboard: React.FC = () => {
                   const avg = (typeof completedRev === 'number' && completed && completed > 0)
                     ? (completedRev / completed)
                     : (todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0));
-                  return `฿${Number(avg).toFixed(0)}`;
+                  return `฿${formatPrice(Number(avg))}`;
                 })()}
               </p>
             </div>
@@ -307,7 +308,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">
-                          ฿{Number(order.total).toFixed(2)}
+                          ฿{formatPrice(Number(order.total))}
                         </p>
                         <p className="text-xs text-gray-500">
                           {order.created_at 

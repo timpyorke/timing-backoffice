@@ -14,6 +14,7 @@ import {
   Plus
 } from 'lucide-react';
 import NoBackendMessage from '@/components/NoBackendMessage';
+import { formatPrice } from '@/utils/format';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 const Orders: React.FC = () => {
@@ -331,7 +332,7 @@ const Orders: React.FC = () => {
                 return (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="truncate mr-2">{item?.quantity || 0}x {displayName}</span>
-                    <span className="flex-shrink-0">฿{Number(item?.price || 0).toFixed(2)}</span>
+                    <span className="flex-shrink-0">฿{formatPrice(Number(item?.price || 0))}</span>
                   </div>
                 );
               })}
@@ -352,7 +353,7 @@ const Orders: React.FC = () => {
                   : Number((subtotal - Math.max(0, Number.isNaN(discount) ? 0 : discount)).toFixed(2));
                 return (
                   <div className="text-lg font-bold text-gray-900">
-                    Total: ฿{displayTotal.toFixed(2)}
+                    Total: ฿{formatPrice(displayTotal)}
                   </div>
                 );
               })()}

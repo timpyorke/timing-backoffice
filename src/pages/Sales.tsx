@@ -15,6 +15,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPrice } from '@/utils/format';
 
 const Sales: React.FC = () => {
   const [salesInsights, setSalesInsights] = useState<SalesInsights | null>(null);
@@ -80,8 +81,8 @@ const Sales: React.FC = () => {
       [''],
       ['Summary Metrics', ''],
       ['Total Orders', salesInsights.data.summary.total_orders.toString()],
-      ['Total Revenue', `฿${salesInsights.data.summary.total_revenue.toFixed(2)}`],
-      ['Average Order Value', `฿${salesInsights.data.summary.average_order_value.toFixed(2)}`],
+      ['Total Revenue', `฿${formatPrice(salesInsights.data.summary.total_revenue)}`],
+      ['Average Order Value', `฿${formatPrice(salesInsights.data.summary.average_order_value)}`],
       ['Completed Orders', salesInsights.data.summary.completed_orders.toString()],
       ['Pending Orders', salesInsights.data.summary.pending_orders.toString()],
       ['Preparing Orders', salesInsights.data.summary.preparing_orders.toString()],
@@ -96,7 +97,7 @@ const Sales: React.FC = () => {
         item.menu_name,
         item.category,
         item.total_quantity_sold.toString(),
-        `฿${item.total_revenue.toFixed(2)}`,
+        `฿${formatPrice(item.total_revenue)}`,
         `${item.percentage_of_total_sales.toFixed(2)}%`
       ])
     ];
@@ -221,7 +222,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">฿{revenueExclCancelled.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{formatPrice(revenueExclCancelled)}</p>
                 </div>
               </div>
             </div>
@@ -233,7 +234,7 @@ const Sales: React.FC = () => {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-gray-900">฿{avgValueExcl.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-gray-900">฿{formatPrice(avgValueExcl)}</p>
                 </div>
               </div>
             </div>
@@ -329,11 +330,11 @@ const Sales: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        ฿{item.total_revenue.toFixed(2)}
+                        ฿{formatPrice(item.total_revenue)}
                       </p>
                       <p className="text-xs text-gray-500">total revenue</p>
                       <p className="text-xs text-gray-500">
-                        ฿{item.average_price.toFixed(2)} avg price
+                        ฿{formatPrice(item.average_price)} avg price
                       </p>
                     </div>
                   </div>
@@ -376,10 +377,10 @@ const Sales: React.FC = () => {
                           {day.total_orders}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ฿{day.total_revenue.toFixed(2)}
+                          ฿{formatPrice(day.total_revenue)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          ฿{day.average_order_value.toFixed(2)}
+                          ฿{formatPrice(day.average_order_value)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {day.completed_orders}/{day.total_orders}
@@ -424,7 +425,7 @@ const Sales: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Completed Revenue</span>
                   <span className="text-sm font-medium text-gray-900">
-                    ฿{salesInsights.data.summary.completed_revenue.toFixed(2)}
+                    ฿{formatPrice(salesInsights.data.summary.completed_revenue)}
                   </span>
                 </div>
                 
