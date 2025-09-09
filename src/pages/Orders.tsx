@@ -8,6 +8,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  XCircle,
   Phone,
   Eye,
   Filter,
@@ -184,6 +185,7 @@ const Orders: React.FC = () => {
     preparing: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'preparing') : [],
     ready: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'ready') : [],
     completed: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'completed') : [],
+    cancelled: Array.isArray(filteredOrders) ? filteredOrders.filter(o => o.status === 'cancelled') : [],
   };
 
   if (loading) {
@@ -252,7 +254,7 @@ const Orders: React.FC = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="card p-4">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -294,6 +296,17 @@ const Orders: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Completed</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.completed.length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="card p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <XCircle className="h-8 w-8 text-red-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Cancelled</p>
+              <p className="text-2xl font-bold text-gray-900">{ordersByStatus.cancelled.length}</p>
             </div>
           </div>
         </div>

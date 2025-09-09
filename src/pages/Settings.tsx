@@ -3,12 +3,16 @@ import { safeStorage } from '@/utils/safeStorage';
 import { useAuth } from '@/contexts/AuthContext';
 import TokenStatus from '@/components/TokenStatus';
 
-import { 
-  User, 
+import {
+  User,
   Settings as SettingsIcon,
-  Save
+  Save,
+  RefreshCw,
+  Store
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getIsCloseFlag, refreshRemoteConfig, db } from '@/services/firebase';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
@@ -44,6 +48,9 @@ const Settings: React.FC = () => {
     soundEnabled: false
   }));
 
+  const [shopClosed, setShopClosed] = useState<boolean>(getIsCloseFlag());
+  const [rcLoading, setRcLoading] = useState<boolean>(false);
+
   // Sync sound enabled state when it changes from the hook
   // Notifications removed
 
@@ -55,6 +62,37 @@ const Settings: React.FC = () => {
       ...prev,
       ...storedSettings
     }));
+    // Attempt initial Remote Config fetch for shop status
+    (async () => {
+      setRcLoading(true);
+      try {
+        await refreshRemoteConfig();
+        setShopClosed(getIsCloseFlag());
+        // Try to override with Firestore value if present
+        const ref = doc(db, 'app_config', 'shop');
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data() as { is_close?: boolean };
+          if (typeof data.is_close === 'boolean') {
+            setShopClosed(!!data.is_close);
+          }
+        }
+        // Live updates from Firestore for this setting
+        const unsub = onSnapshot(ref, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as { is_close?: boolean };
+            if (typeof data.is_close === 'boolean') {
+              setShopClosed(!!data.is_close);
+            }
+          }
+        });
+        return () => unsub();
+      } catch (e) {
+        console.warn('Initial Remote Config load failed', e);
+      } finally {
+        setRcLoading(false);
+      }
+    })();
   }, []);
 
   // Debug: Log settings changes
@@ -68,17 +106,17 @@ const Settings: React.FC = () => {
 
   const handleSaveSettings = () => {
     console.log('Saving settings:', settings);
-    
+
     // Save settings to localStorage
     safeStorage.setItem('app_settings', JSON.stringify(settings));
-    
+
     // Trigger a custom event to notify other components
-    window.dispatchEvent(new CustomEvent('settingsChanged', { 
-      detail: settings 
+    window.dispatchEvent(new CustomEvent('settingsChanged', {
+      detail: settings
     }));
-    
+
     toast.success('Settings saved successfully');
-    
+
     // Verify settings were saved correctly
     const savedSettings = safeStorage.getItem('app_settings');
     console.log('Settings saved to localStorage:', savedSettings);
@@ -101,7 +139,7 @@ const Settings: React.FC = () => {
             <User className="h-5 w-5 mr-2" />
             User Profile
           </h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -111,7 +149,7 @@ const Settings: React.FC = () => {
                 {user?.name || 'Not provided'}
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -120,7 +158,7 @@ const Settings: React.FC = () => {
                 {user?.email}
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Role
@@ -129,8 +167,8 @@ const Settings: React.FC = () => {
                 {user?.role || 'Staff'}
               </div>
             </div>
-               {/* Token Status */}
-              <TokenStatus />
+            {/* Token Status */}
+            <TokenStatus />
           </div>
         </div>
 
@@ -142,7 +180,7 @@ const Settings: React.FC = () => {
             <SettingsIcon className="h-5 w-5 mr-2" />
             App Settings
           </h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -153,8 +191,8 @@ const Settings: React.FC = () => {
                 onChange={(e) => {
                   const newValue = parseInt(e.target.value, 10);
                   console.log('Auto refresh interval changed from', settings.autoRefreshInterval, 'to:', newValue);
-                  setSettings(prev => ({ 
-                    ...prev, 
+                  setSettings(prev => ({
+                    ...prev,
                     autoRefreshInterval: newValue
                   }));
                 }}
@@ -175,28 +213,73 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
+        {/* Shop Status (Remote Config) */}
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <Store className="h-5 w-5 mr-2" />
+            Shop
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  App client status is
+                </label>
+
+              </div>
+              <div className="flex items-center space-x-3">
+                <span
+                  className={`px-2 py-1 rounded text-xs font-medium ${shopClosed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}
+                >
+                  {shopClosed ? 'Closed' : 'Open'}
+                </span>
+                <button
+                  onClick={async () => {
+                    setRcLoading(true);
+                    const ok = await refreshRemoteConfig();
+                    const current = getIsCloseFlag();
+                    setShopClosed(current);
+                    setRcLoading(false);
+                    if (ok) {
+                      toast.success(`Remote Config synced. Shop is ${current ? 'Closed' : 'Open'}.`);
+                    } else {
+                      toast.error('Failed to refresh Remote Config');
+                    }
+                  }}
+                  className={`btn-secondary flex items-center space-x-2 ${rcLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  disabled={rcLoading}
+                  title="Refresh Remote Config"
+                >
+                  <RefreshCw className={`h-4 w-4 ${rcLoading ? 'animate-spin' : ''}`} />
+                  <span>{rcLoading ? 'Refreshing...' : 'Refresh'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* System Information */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             System Information
           </h2>
-          
+
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">App Version:</span>
               <span className="text-gray-900">1.0.0</span>
             </div>
-            
+
             <div className="flex justify-between">
               <span className="text-gray-600">Last Updated:</span>
               <span className="text-gray-900">{new Date().toLocaleDateString()}</span>
             </div>
-            
+
             <div className="flex justify-between">
               <span className="text-gray-600">Browser:</span>
               <span className="text-gray-900">{navigator.userAgent.split(' ')[0]}</span>
             </div>
-            
+
             <div className="flex justify-between">
               <span className="text-gray-600">Platform:</span>
               <span className="text-gray-900">{navigator.platform}</span>
