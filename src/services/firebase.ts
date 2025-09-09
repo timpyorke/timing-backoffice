@@ -1,6 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, Auth, setPersistence, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { 
+  getRemoteConfig, 
+  fetchAndActivate, 
+  getValue, 
+  RemoteConfig 
+} from 'firebase/remote-config';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -29,3 +35,36 @@ export const auth: Auth = getAuth(app);
   }
 })();
 export const db: Firestore = getFirestore(app);
+
+// Remote Config setup
+export const remoteConfig: RemoteConfig = getRemoteConfig(app);
+
+// Set sensible defaults and fetch behavior
+remoteConfig.settings = {
+  // Cache Remote Config values for 10 minutes across environments
+  minimumFetchIntervalMillis: 10 * 60 * 1000,
+  fetchTimeoutMillis: 10_000
+};
+
+// Default values to avoid undefined before first fetch
+remoteConfig.defaultConfig = {
+  is_close: false
+};
+
+export async function refreshRemoteConfig(): Promise<boolean> {
+  try {
+    const activated = await fetchAndActivate(remoteConfig);
+    return activated;
+  } catch (err) {
+    console.warn('Remote Config fetch/activate failed:', err);
+    return false;
+  }
+}
+
+export function getIsCloseFlag(): boolean {
+  try {
+    return getValue(remoteConfig, 'is_close').asBoolean();
+  } catch {
+    return false;
+  }
+}
