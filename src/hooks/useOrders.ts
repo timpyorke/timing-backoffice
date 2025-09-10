@@ -77,10 +77,10 @@ export const useOrders = (options: UseOrdersOptions = {}): UseOrdersReturn => {
       console.log(`Hook: API call successful for order ${orderId}`, updatedOrder);
       
       // Update local state with the response from API (more reliable than optimistic update)
-      setOrders(prev => 
-        prev.map(order => 
-          order.id === orderId 
-            ? { ...order, ...updatedOrder, status, updated_at: new Date() }
+      setOrders(prev =>
+        prev.map(order =>
+          order.id === orderId
+            ? { ...order, ...updatedOrder, status, updated_at: new Date().toISOString() }
             : order
         )
       );

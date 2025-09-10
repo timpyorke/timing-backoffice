@@ -21,8 +21,8 @@ class ApiService {
       items: this.normalizeOrderItems(orderData.items),
       total: this.normalizeTotal(orderData.total),
       status: normalizeOrderStatus(orderData.status as string),
-      created_at: orderData.created_at as string || new Date().toISOString(),
-      updated_at: orderData.updated_at as string || new Date().toISOString(),
+      created_at: this.normalizeDate(orderData.created_at),
+      updated_at: this.normalizeDate(orderData.updated_at),
       customer_id: orderData.customer_id as string,
       estimatedTime: orderData.estimatedTime as number,
       specialInstructions: orderData.specialInstructions as string,
@@ -79,6 +79,38 @@ class ApiService {
       return total;
     }
     return 0;
+  }
+
+  // Ensure date-like values become ISO strings
+  private normalizeDate(value: unknown): string {
+    try {
+      // String: attempt to parse; fallback to original if valid
+      if (typeof value === 'string') {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+      // Number: treat as epoch millis
+      if (typeof value === 'number') {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+      // Date instance
+      if (value instanceof Date) {
+        return isNaN(value.getTime()) ? new Date().toISOString() : value.toISOString();
+      }
+      // Firestore Timestamp-like { seconds, nanoseconds }
+      if (value && typeof value === 'object' && 'seconds' in (value as any)) {
+        const seconds = Number((value as any).seconds);
+        const nanos = Number((value as any).nanoseconds || 0);
+        const ms = seconds * 1000 + Math.floor(nanos / 1e6);
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+    } catch (_) {
+      // ignore and fallback below
+    }
+    // Fallback to now
+    return new Date().toISOString();
   }
 
   // Helper function to normalize array of orders
