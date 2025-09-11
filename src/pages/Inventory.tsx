@@ -140,7 +140,7 @@ const Inventory: React.FC = () => {
       </div>
 
       {/* Create / Update Ingredient */}
-      <div className="card p-4 center">
+      <div className="card p-4">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>

@@ -1,4 +1,4 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput } from '@/types';
 import { auth } from '@/services/firebase';
 import { safeStorage } from '@/utils/safeStorage';
 
@@ -469,6 +469,95 @@ class ApiService {
     const endpoint = `/admin/sales/top-items${queryString ? `?${queryString}` : ''}`;
 
     return this.request(endpoint);
+  }
+
+  // Ingredients & Inventory
+  async getIngredients(): Promise<Ingredient[]> {
+    const result = await this.request<any>('/admin/ingredients');
+    // Accept a wide range of shapes
+    if (Array.isArray(result)) return result as Ingredient[];
+    if (result && typeof result === 'object') {
+      const r: any = result;
+      // Common envelopes
+      if (Array.isArray(r.data)) return r.data as Ingredient[];
+      if (r.success && r.data && Array.isArray(r.data.items)) return r.data.items as Ingredient[];
+      if (r.success && Array.isArray(r.items)) return r.items as Ingredient[];
+      // Ingredients key variants
+      if (Array.isArray(r.ingredients)) return r.ingredients as Ingredient[];
+      if (r.data && Array.isArray(r.data.ingredients)) return r.data.ingredients as Ingredient[];
+      if (Array.isArray(r.items)) return r.items as Ingredient[];
+    }
+    console.warn('API: Unexpected ingredients response structure:', result);
+    return [];
+  }
+
+  async upsertIngredient(payload: UpsertIngredientInput): Promise<Ingredient> {
+    const result = await this.request<any>('/admin/ingredients', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result && result.data) return result.data as Ingredient;
+    return result as Ingredient;
+  }
+
+  async addIngredientStock(payload: AddStockInput): Promise<Ingredient | { success: boolean } > {
+    const result = await this.request<any>('/admin/ingredients/add-stock', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return result;
+  }
+
+  async setMenuRecipe(menuId: string | number, items: RecipeItemInput[]): Promise<{ success: boolean } | any> {
+    const result = await this.request<any>(`/admin/menu/${menuId}/recipe`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+    return result;
+  }
+
+  async deleteIngredient(identifier: { id?: string | number; name?: string }): Promise<boolean> {
+    const { id, name } = identifier;
+    // Try DELETE by id or name path
+    const tryDelete = async (endpoint: string, opts?: RequestInit) => {
+      try {
+        await this.request(endpoint, { method: 'DELETE', ...(opts || {}) });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    // Primary attempts
+    if (id != null) {
+      if (await tryDelete(`/admin/ingredients/${encodeURIComponent(String(id))}`)) return true;
+    }
+    if (name) {
+      if (await tryDelete(`/admin/ingredients/${encodeURIComponent(name)}`)) return true;
+      // Some APIs accept body on DELETE
+      if (await tryDelete(`/admin/ingredients`, { body: JSON.stringify({ name }) })) return true;
+    }
+
+    // Fallback patterns observed in some APIs
+    try {
+      const res = await this.request(`/admin/ingredients/delete`, {
+        method: 'POST',
+        body: JSON.stringify({ id, name }),
+      });
+      return !!res;
+    } catch (_) {
+      // As a last resort, attempt PUT to mark inactive (soft delete), if supported
+      if (id != null) {
+        try {
+          await this.request(`/admin/ingredients/${encodeURIComponent(String(id))}`, {
+            method: 'PUT',
+            body: JSON.stringify({ active: false }),
+          });
+          return true;
+        } catch (_) {}
+      }
+    }
+    return false;
   }
 }
 
