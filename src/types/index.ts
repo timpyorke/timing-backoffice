@@ -98,9 +98,9 @@ export function normalizeOrderStatus(status: string | undefined | null): OrderSt
     console.warn(`Order status is undefined or null, defaulting to pending`);
     return 'pending';
   }
-  
+
   const normalized = status.toLowerCase() as OrderStatus;
-  
+
   // Map common variations
   switch (normalized) {
     case 'pending':
