@@ -563,6 +563,13 @@ const OrderDetails: React.FC = () => {
                   </a>
                 </div>
               )}
+
+              {order.customer_info?.table_number && (
+                <div className="flex items-center">
+                  <span className="h-4 w-4 text-gray-400 mr-3">🍽️</span>
+                  <span className="text-gray-900">Table: {order.customer_info.table_number}</span>
+                </div>
+              )}
             </div>
           </div>
 

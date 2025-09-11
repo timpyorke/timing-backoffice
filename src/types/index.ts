@@ -4,6 +4,7 @@ export interface Order {
     name: string;
     email?: string;
     phone?: string;
+    table_number?: string;
   };
   customer_id?: string;
   items: OrderItem[];
@@ -26,6 +27,7 @@ export interface ApiStatusUpdateResponse {
       name: string;
       email?: string;
       phone?: string;
+      table_number?: string;
     };
     status: OrderStatus;
     total?: string | number;
@@ -64,6 +66,7 @@ export interface CreateOrderInput {
     name: string;
     email?: string;
     phone?: string;
+    table_number?: string;
   };
   customer_id?: string;
   items: Array<{
