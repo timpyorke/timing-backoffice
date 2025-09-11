@@ -21,7 +21,8 @@ import {
   Printer,
   Calendar,
   DollarSign,
-  User
+  User,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatPrice } from '@/utils/format';
@@ -163,6 +164,7 @@ const OrderDetails: React.FC = () => {
         
         <div class="order-info">
           <p><strong>Customer:</strong> ${order.customer_info?.name || 'N/A'}</p>
+          ${order.customer_info?.table_number ? `<p><strong>Table:</strong> ${order.customer_info.table_number}</p>` : ''}
           ${order.customer_info?.phone ? `<p><strong>Phone:</strong> ${order.customer_info.phone}</p>` : ''}
           ${order.customer_info?.email ? `<p><strong>Email:</strong> ${order.customer_info.email}</p>` : ''}
           <p><strong>Status:</strong> ${order.status.toUpperCase()}</p>
@@ -540,6 +542,15 @@ const OrderDetails: React.FC = () => {
                 <span className="text-gray-900">{order.customer_info?.name || 'N/A'}</span>
               </div>
 
+              {order.customer_info?.table_number && (
+                <div className="flex items-center">
+                  <span className="h-4 w-4 text-gray-400 mr-3">🍽️</span>
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded-full border border-blue-200 ml-1">
+                    Table: {order.customer_info.table_number?.toUpperCase()}
+                  </span>
+                </div>
+              )}
+
               {order.customer_info?.phone && (
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 text-gray-400 mr-3" />
@@ -554,20 +565,13 @@ const OrderDetails: React.FC = () => {
 
               {order.customer_info?.email && (
                 <div className="flex items-center">
-                  <User className="h-4 w-4 text-gray-400 mr-3" />
+                  <Mail className="h-4 w-4 text-gray-400 mr-3" />
                   <a
                     href={`mailto:${order.customer_info.email}`}
                     className="text-primary-600 hover:text-primary-800 underline"
                   >
                     {order.customer_info.email}
                   </a>
-                </div>
-              )}
-
-              {order.customer_info?.table_number && (
-                <div className="flex items-center">
-                  <span className="h-4 w-4 text-gray-400 mr-3">🍽️</span>
-                  <span className="text-gray-900">Table: {order.customer_info.table_number}</span>
                 </div>
               )}
             </div>
