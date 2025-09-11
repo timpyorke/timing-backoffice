@@ -14,7 +14,7 @@ class ApiService {
     }
 
     const orderData = order as Record<string, unknown>;
-    
+
     return {
       id: orderData.id ? String(orderData.id) : '',
       customer_info: this.normalizeCustomerInfo(orderData.customer_info),
@@ -36,12 +36,12 @@ class ApiService {
     if (!customerInfo || typeof customerInfo !== 'object') {
       return { name: 'Unknown Customer' };
     }
-    
     const info = customerInfo as Record<string, unknown>;
     return {
       name: (info.name as string) || 'Unknown Customer',
       email: info.email as string,
       phone: info.phone as string,
+      table_number: info.table_number as string,
     };
   }
 
@@ -49,12 +49,12 @@ class ApiService {
     if (!Array.isArray(items)) {
       return [];
     }
-    
+
     return items.map((item: unknown) => {
       if (!item || typeof item !== 'object') {
         throw new Error('Invalid order item data');
       }
-      
+
       const itemData = item as Record<string, unknown>;
       return {
         id: itemData.id as number,
@@ -135,12 +135,12 @@ class ApiService {
 
       // Check if token needs refresh (Firebase handles this internally)
       const token = await user.getIdToken(false); // false = don't force refresh
-      
+
       // Update localStorage with the current token
       if (token) {
         safeStorage.setItem('token', token);
       }
-      
+
       return token;
     } catch (error) {
       console.error('Error getting valid token:', error);
@@ -155,7 +155,7 @@ class ApiService {
     }
 
     this.refreshTokenPromise = this.performTokenRefresh();
-    
+
     try {
       const token = await this.refreshTokenPromise;
       return token;
@@ -173,7 +173,7 @@ class ApiService {
 
       // Force refresh the token
       const newToken = await user.getIdToken(true);
-      
+
       if (newToken) {
         localStorage.setItem('token', newToken);
         console.log('Token refreshed successfully');
@@ -206,24 +206,24 @@ class ApiService {
         headers,
         ...options,
       });
-      
-      
+
+
       if (response.status === 401) {
         console.log('Token expired, attempting refresh...');
-        
+
         try {
           await this.refreshToken();
-          
+
           const newHeaders = await this.getHeaders();
           const retryResponse = await fetch(url, {
             headers: newHeaders,
             ...options,
           });
-          
+
           if (!retryResponse.ok) {
             throw new Error(`API Error: ${retryResponse.status} ${retryResponse.statusText}`);
           }
-          
+
           return retryResponse.json();
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
@@ -251,12 +251,12 @@ class ApiService {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.date) params.append('date', filters.date);
     if (filters?.limit) params.append('limit', filters.limit.toString());
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`;
-    
+
     const result = await this.request<any>(endpoint);
-    
+
     // Handle different API response structures
     if (Array.isArray(result)) {
       const normalized = this.normalizeOrders(result);
@@ -278,15 +278,15 @@ class ApiService {
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | ApiStatusUpdateResponse> {
     console.log(`API: Updating order ${orderId} to status ${status}`);
-    
+
     try {
       const result = await this.request<ApiStatusUpdateResponse | Order>(`/admin/orders/${orderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
-      
+
       console.log(`API: Raw response for order ${orderId}:`, result);
-      
+
       // Check if response is nested format
       if (this.isApiStatusUpdateResponse(result)) {
         // Return the nested response as-is for OrderDetails to handle
@@ -304,10 +304,10 @@ class ApiService {
   }
 
   private isApiStatusUpdateResponse(response: unknown): response is ApiStatusUpdateResponse {
-    return typeof response === 'object' && 
-           response !== null && 
-           'success' in response && 
-           'data' in response;
+    return typeof response === 'object' &&
+      response !== null &&
+      'success' in response &&
+      'data' in response;
   }
 
   async getMenuItems(): Promise<MenuItem[]> {
@@ -354,12 +354,12 @@ class ApiService {
 
   async getOrder(orderId: string): Promise<Order> {
     const result = await this.request<any>(`/admin/orders/${orderId}`);
-    
+
     // Handle new API response structure: { success: true, data: Order }
     if (result && result.success && result.data) {
       return this.normalizeOrder(result.data);
     }
-    
+
     return this.normalizeOrder(result);
   }
 
@@ -433,11 +433,11 @@ class ApiService {
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     const url = `${API_BASE_URL.replace('/api', '')}/health`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
@@ -448,10 +448,10 @@ class ApiService {
     const params = new URLSearchParams();
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/sales/insights${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request(endpoint);
   }
 
@@ -464,10 +464,10 @@ class ApiService {
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
     if (filters?.limit) params.append('limit', filters.limit.toString());
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/sales/top-items${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request(endpoint);
   }
 }
