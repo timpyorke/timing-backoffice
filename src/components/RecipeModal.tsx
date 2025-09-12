@@ -22,19 +22,27 @@ const RecipeModal: React.FC<Props> = ({ isOpen, onClose, menuId, onSaved }) => {
       setItems([]);
       return;
     }
-    // Load ingredient list when opening
+    // Load ingredient list and existing recipe when opening
     (async () => {
       try {
         setLoadingIngs(true);
         const data = await apiService.getIngredients();
         const list = Array.isArray(data) ? data : [];
         setIngredients(list);
-        // Ensure at least one row is visible when ingredients exist
-        if (list.length > 0) {
-          setItems((prev) => prev.length === 0
-            ? [{ ingredient_name: list[0].name, quantity: 1 }]
-            : prev
-          );
+        // Try fetch existing recipe to prefill
+        try {
+          if (menuId) {
+            const existing = await apiService.getMenuRecipe(menuId);
+            if (existing && existing.length > 0) {
+              setItems(existing);
+            } else {
+              // No existing recipe; keep list empty to avoid displaying rows
+              setItems([]);
+            }
+          }
+        } catch (e) {
+          // If recipe fetch fails, do not auto-populate rows
+          setItems([]);
         }
       } catch (e) {
         console.warn('Failed to load ingredients for recipe modal', e);
@@ -120,6 +128,20 @@ const RecipeModal: React.FC<Props> = ({ isOpen, onClose, menuId, onSaved }) => {
                           value={it.quantity}
                           onChange={(e) => setItems((prev) => prev.map((p, i) => i === idx ? { ...p, quantity: Number(e.target.value) } : p))}
                         />
+                        {selected && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {it.quantity && it.quantity > 0 ? (
+                              <>
+                                Per unit: {Number(it.quantity)} {selected.unit}
+                                {typeof selected.stock === 'number' && selected.stock > 0 && it.quantity > 0 && (
+                                  <> • Est. servings: {Math.floor(Number(selected.stock) / Number(it.quantity))}</>
+                                )}
+                              </>
+                            ) : (
+                              <>Unit: {selected.unit}</>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="col-span-2 flex justify-end">
                         <button onClick={() => removeRow(idx)} className="h-10 w-10 rounded-md bg-red-100 text-red-700 hover:bg-red-200 flex items-center justify-center"><Trash2 className="h-4 w-4" /></button>
