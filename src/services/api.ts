@@ -1,8 +1,10 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput, HourlySalesResponse } from '@/types';
 import { auth } from '@/services/firebase';
 import { safeStorage } from '@/utils/safeStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// Prefer explicit env override, else browser's local timezone, else UTC
+const DEFAULT_TIMEZONE = (import.meta as any).env?.VITE_TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 class ApiService {
   private refreshTokenPromise: Promise<string> | null = null;
@@ -468,6 +470,25 @@ class ApiService {
     const queryString = params.toString();
     const endpoint = `/admin/sales/top-items${queryString ? `?${queryString}` : ''}`;
 
+    return this.request(endpoint);
+  }
+
+  async getHourlySales(filters?: {
+    date?: string; // specific day (local time)
+    start_date?: string; // for range (local time)
+    end_date?: string; // for range (local time)
+    tz?: string; // IANA timezone e.g., Asia/Bangkok
+  }): Promise<HourlySalesResponse> {
+    const params = new URLSearchParams();
+    if (filters?.date) params.append('date', filters.date);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    // Always include timezone
+    params.append('tz', filters?.tz ?? DEFAULT_TIMEZONE);
+
+    // All-time: no params
+    const queryString = params.toString();
+    const endpoint = `/admin/sales/hourly${queryString ? `?${queryString}` : ''}`;
     return this.request(endpoint);
   }
 
