@@ -166,6 +166,14 @@ const Inventory: React.FC = () => {
             {editingName && (
               <div className="text-xs text-gray-500 mt-1">Editing: unit</div>
             )}
+            {editingName && (
+              <div className="text-xs text-gray-500 mt-1">
+                ID: {(() => {
+                  const ing = ingredients.find(x => x.name.toLowerCase() === String(editingName).toLowerCase());
+                  return String(ing?.id ?? '-');
+                })()}
+              </div>
+            )}
           </div>
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock</label>
@@ -222,6 +230,7 @@ const Inventory: React.FC = () => {
                 <div className="flex-1">
                   <div className="font-medium text-gray-900 capitalize">{ing.name}</div>
                   <div className="text-sm text-gray-500">Unit: {ing.unit}</div>
+                  <div className="text-xs text-gray-400">ID: {String(ing.id ?? '-')}</div>
                 </div>
                 <div className="w-full md:w-48">
                   <div className="text-sm text-gray-600">Stock</div>

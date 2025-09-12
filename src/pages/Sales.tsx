@@ -21,6 +21,8 @@ const Sales: React.FC = () => {
   const [salesInsights, setSalesInsights] = useState<SalesInsights | null>(null);
   const [topItems, setTopItems] = useState<TopSellingItemsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  // Date range or All-time toggle
+  const [allTime, setAllTime] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string>(
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
@@ -34,8 +36,12 @@ const Sales: React.FC = () => {
     try {
       setLoading(true);
       const [insightsResponse, topItemsResponse] = await Promise.all([
-        apiService.getSalesInsights({ start_date: startDate, end_date: endDate }),
-        apiService.getTopSellingItems({ start_date: startDate, end_date: endDate, limit: topItemsLimit })
+        allTime
+          ? apiService.getSalesInsights()
+          : apiService.getSalesInsights({ start_date: startDate, end_date: endDate }),
+        allTime
+          ? apiService.getTopSellingItems({ limit: topItemsLimit })
+          : apiService.getTopSellingItems({ start_date: startDate, end_date: endDate, limit: topItemsLimit })
       ]);
       
       setSalesInsights(insightsResponse);
@@ -53,7 +59,7 @@ const Sales: React.FC = () => {
 
   useEffect(() => {
     fetchSalesData();
-  }, [startDate, endDate, topItemsLimit]);
+  }, [allTime, startDate, endDate, topItemsLimit]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -107,7 +113,13 @@ const Sales: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sales-insights-${startDate}-to-${endDate}.csv`;
+    const period = salesInsights?.period;
+    const name = allTime
+      ? 'sales-insights-all-time.csv'
+      : period
+        ? `sales-insights-${period.start_date}-to-${period.end_date}.csv`
+        : `sales-insights-${startDate}-to-${endDate}.csv`;
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -146,6 +158,7 @@ const Sales: React.FC = () => {
               onChange={handleStartDateChange}
               className="input text-sm"
               placeholder="Start Date"
+              disabled={allTime}
             />
             <span className="text-gray-500">to</span>
             <input
@@ -154,7 +167,16 @@ const Sales: React.FC = () => {
               onChange={handleEndDateChange}
               className="input text-sm"
               placeholder="End Date"
+              disabled={allTime}
             />
+            <button
+              type="button"
+              onClick={() => setAllTime((v) => !v)}
+              className={`${allTime ? 'btn-primary' : 'btn-secondary'} whitespace-nowrap`}
+              title={allTime ? 'Use Date Range' : 'Show All Time'}
+            >
+              {allTime ? 'Use Date Range' : 'Show All Time'}
+            </button>
           </div>
           <div className="flex items-center space-x-2">
             <BarChart3 className="h-4 w-4 text-gray-500" />
@@ -192,14 +214,25 @@ const Sales: React.FC = () => {
       {salesInsights && topItems ? (
         <>
           {/* Period Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <span className="text-blue-800 font-medium">
-                Sales Period: {new Date(salesInsights.period.start_date).toLocaleDateString('en-US')} - {new Date(salesInsights.period.end_date).toLocaleDateString('en-US')}
-              </span>
+          {allTime ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                <span className="text-blue-800 font-medium">Sales Period: All time</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            salesInsights?.period && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <span className="text-blue-800 font-medium">
+                    Sales Period: {new Date(salesInsights.period.start_date).toLocaleDateString('en-US')} - {new Date(salesInsights.period.end_date).toLocaleDateString('en-US')}
+                  </span>
+                </div>
+              </div>
+            )
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -344,9 +377,7 @@ const Sales: React.FC = () => {
               <div className="text-center py-8">
                 <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No sales data</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  No items were sold in the selected period.
-                </p>
+                <p className="mt-1 text-sm text-gray-500">No items were sold.</p>
               </div>
             )}
           </div>

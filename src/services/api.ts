@@ -500,7 +500,7 @@ class ApiService {
     return result as Ingredient;
   }
 
-  async addIngredientStock(payload: AddStockInput): Promise<Ingredient | { success: boolean } > {
+  async addIngredientStock(payload: AddStockInput): Promise<Ingredient | { success: boolean }> {
     const result = await this.request<any>('/admin/ingredients/add-stock', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -514,6 +514,39 @@ class ApiService {
       body: JSON.stringify({ items }),
     });
     return result;
+  }
+
+  async getMenuRecipe(menuId: string | number): Promise<RecipeItemInput[]> {
+    const res = await this.request<any>(`/admin/menu/${menuId}/recipe`);
+
+    // Normalize a variety of possible response shapes
+    const pickItems = (obj: any): any[] | null => {
+      if (!obj) return null;
+      if (Array.isArray(obj)) return obj;
+      if (Array.isArray(obj.items)) return obj.items;
+      if (obj.data) return pickItems(obj.data);
+      if (obj.recipe) return pickItems(obj.recipe);
+      return null;
+    };
+
+    const rawItems = pickItems(res) || [];
+    const normalized: RecipeItemInput[] = rawItems.map((it: any) => {
+      // Try several common shapes
+      const name = it.ingredient_name || it.name || it.ingredient?.name || it.ingredient || '';
+      const qty = typeof it.quantity === 'number'
+        ? it.quantity
+        : typeof it.quantity_per_unit === 'number'
+          ? it.quantity_per_unit
+          : typeof it.qty === 'number'
+            ? it.qty
+            : Number(it.quantity) || Number(it.quantity_per_unit) || Number(it.qty) || 0;
+      return {
+        ingredient_name: String(name),
+        quantity: Number(qty) || 0,
+      };
+    }).filter((x: RecipeItemInput) => x.ingredient_name);
+
+    return normalized;
   }
 
   async deleteIngredient(identifier: { id?: string | number; name?: string }): Promise<boolean> {
@@ -554,7 +587,7 @@ class ApiService {
             body: JSON.stringify({ active: false }),
           });
           return true;
-        } catch (_) {}
+        } catch (_) { }
       }
     }
     return false;
