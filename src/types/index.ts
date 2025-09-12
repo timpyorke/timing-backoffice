@@ -242,6 +242,34 @@ export interface TopSellingItemsResponse {
   count: number;
 }
 
+// Hourly sales breakdown (for curve graph)
+export interface HourlyDataPoint {
+  hour: number; // 0-23
+  items_sold: number;
+  orders_count: number;
+  revenue: number; // numeric revenue (not string)
+}
+
+export interface HourlyTotals {
+  items_sold: number;
+  orders_count: number;
+  revenue: number;
+}
+
+export interface HourlySalesResponse {
+  success: boolean;
+  data: {
+    date?: string | null;
+    period: {
+      start_date: string | null;
+      end_date: string | null;
+      all_time: boolean;
+    };
+    hourly: HourlyDataPoint[];
+    totals: HourlyTotals;
+  };
+}
+
 // Inventory & Ingredients
 export interface Ingredient {
   id?: number | string;

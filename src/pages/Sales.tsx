@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
-import { SalesInsights, TopSellingItemsResponse } from '@/types';
-import { 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingCart, 
+import { SalesInsights, TopSellingItemsResponse, HourlySalesResponse } from '@/types';
+import {
+  TrendingUp,
+  DollarSign,
+  ShoppingCart,
   Calendar,
   Download,
   RefreshCw,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatPrice } from '@/utils/format';
+import SimpleLineChart from '@/components/SimpleLineChart';
 
 const Sales: React.FC = () => {
   const [salesInsights, setSalesInsights] = useState<SalesInsights | null>(null);
@@ -32,6 +33,15 @@ const Sales: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [topItemsLimit, setTopItemsLimit] = useState<number>(5);
 
+  // Hourly curve graph state
+  const [hourlyMode, setHourlyMode] = useState<'all' | 'range' | 'day'>('day');
+  const [hourlyStart, setHourlyStart] = useState<string>(startDate);
+  const [hourlyEnd, setHourlyEnd] = useState<string>(endDate);
+  const [hourlyDate, setHourlyDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [hourlyMetric, setHourlyMetric] = useState<'revenue' | 'orders_count' | 'items_sold'>('revenue');
+  const [hourlyData, setHourlyData] = useState<HourlySalesResponse | null>(null);
+  const [hourlyLoading, setHourlyLoading] = useState<boolean>(false);
+
   const fetchSalesData = async () => {
     try {
       setLoading(true);
@@ -43,7 +53,7 @@ const Sales: React.FC = () => {
           ? apiService.getTopSellingItems({ limit: topItemsLimit })
           : apiService.getTopSellingItems({ start_date: startDate, end_date: endDate, limit: topItemsLimit })
       ]);
-      
+
       setSalesInsights(insightsResponse);
       setTopItems(topItemsResponse);
     } catch (error) {
@@ -60,6 +70,33 @@ const Sales: React.FC = () => {
   useEffect(() => {
     fetchSalesData();
   }, [allTime, startDate, endDate, topItemsLimit]);
+
+  // Fetch hourly according to mode
+  const fetchHourly = async () => {
+    try {
+      setHourlyLoading(true);
+      let res: HourlySalesResponse;
+      if (hourlyMode === 'all') {
+        res = await apiService.getHourlySales();
+      } else if (hourlyMode === 'range') {
+        res = await apiService.getHourlySales({ start_date: hourlyStart, end_date: hourlyEnd });
+      } else {
+        res = await apiService.getHourlySales({ date: hourlyDate });
+      }
+      setHourlyData(res);
+    } catch (e) {
+      console.error('Failed to fetch hourly sales:', e);
+      toast.error('Failed to fetch hourly sales.');
+      setHourlyData(null);
+    } finally {
+      setHourlyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHourly();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hourlyMode, hourlyStart, hourlyEnd, hourlyDate]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -124,7 +161,7 @@ const Sales: React.FC = () => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    
+
     toast.success('Sales insights report exported successfully');
   };
 
@@ -213,6 +250,92 @@ const Sales: React.FC = () => {
 
       {salesInsights && topItems ? (
         <>
+          {/* Hourly Sales Curve */}
+          <div className="card p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Hourly Sales (Curve)</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-md shadow-sm" role="group">
+                  <button
+                    type="button"
+                    onClick={() => setHourlyMode('day')}
+                    className={`px-3 py-1.5 text-sm border ${hourlyMode === 'day' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  >Specific day</button>
+                  <button
+                    type="button"
+                    onClick={() => setHourlyMode('range')}
+                    className={`px-3 py-1.5 text-sm border-t border-b ${hourlyMode === 'range' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  >Date range</button>
+                  <button
+                    type="button"
+                    onClick={() => setHourlyMode('all')}
+                    className={`px-3 py-1.5 text-sm border ${hourlyMode === 'all' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  >All-time</button>
+                </div>
+
+                {hourlyMode === 'day' && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <input
+                      type="date"
+                      value={hourlyDate}
+                      onChange={(e) => setHourlyDate(e.target.value)}
+                      className="input text-sm"
+                    />
+                  </div>
+                )}
+
+                {hourlyMode === 'range' && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <input type="date" value={hourlyStart} onChange={(e) => setHourlyStart(e.target.value)} className="input text-sm" />
+                    <span className="text-gray-500">to</span>
+                    <input type="date" value={hourlyEnd} onChange={(e) => setHourlyEnd(e.target.value)} className="input text-sm" />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Metric:</span>
+                  <select className="input text-sm" value={hourlyMetric} onChange={(e) => setHourlyMetric(e.target.value as any)}>
+                    <option value="revenue">Revenue</option>
+                    <option value="orders_count">Orders</option>
+                    <option value="items_sold">Items Sold</option>
+                  </select>
+                </div>
+
+                <button onClick={fetchHourly} className="btn-secondary flex items-center space-x-2">
+                  <RefreshCw className={`h-4 w-4 ${hourlyLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            {hourlyLoading ? (
+              <div className="flex items-center justify-center h-48"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" /></div>
+            ) : hourlyData && hourlyData.data.hourly.length > 0 ? (
+              <div className="w-full">
+                <SimpleLineChart
+                  height={280}
+                  label={hourlyMetric === 'revenue' ? 'Revenue' : hourlyMetric === 'orders_count' ? 'Orders' : 'Items sold'}
+                  points={hourlyData.data.hourly.map(h => ({ x: h.hour, y: h[hourlyMetric] as unknown as number }))}
+                  yFormatter={(v) => hourlyMetric === 'revenue' ? `฿${formatPrice(v)}` : String(v)}
+                  xFormatter={(v) => `${v}:00`}
+                  paddingLeft={64}
+                />
+                <div className="mt-3 text-xs text-gray-500">
+                  {hourlyData.data.period.all_time ? (
+                    <span>All-time hourly {hourlyMetric.replace('_', ' ')}. Totals: {hourlyMetric === 'revenue' ? `฿${formatPrice(hourlyData.data.totals.revenue)}` : hourlyMetric === 'orders_count' ? hourlyData.data.totals.orders_count : hourlyData.data.totals.items_sold}</span>
+                  ) : hourlyMode === 'day' ? (
+                    <span>Day: {hourlyData.data.date}</span>
+                  ) : (
+                    <span>Range: {hourlyData.data.period.start_date} - {hourlyData.data.period.end_date}</span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">No hourly data.</div>
+            )}
+          </div>
           {/* Period Info */}
           {allTime ? (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -320,7 +443,7 @@ const Sales: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900">Top {topItemsLimit} Selling Items</h2>
               <span className="text-sm text-gray-500">{topItems.count} items found</span>
             </div>
-            
+
             {topItems.data && topItems.data.length > 0 ? (
               <div className="space-y-4">
                 {topItems.data.map((item, index) => (
@@ -333,8 +456,8 @@ const Sales: React.FC = () => {
                       </div>
                       <div className="flex-shrink-0">
                         {item.image_url ? (
-                          <img 
-                            src={item.image_url} 
+                          <img
+                            src={item.image_url}
                             alt={item.menu_name}
                             className="h-12 w-12 rounded-lg object-cover object-center"
                             onError={(e) => {
@@ -459,18 +582,18 @@ const Sales: React.FC = () => {
                     ฿{formatPrice(salesInsights.data.summary.completed_revenue)}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Best selling category</span>
                   <span className="text-sm font-medium text-gray-900">
                     {topItems.data.length > 0 ? topItems.data[0].category : 'N/A'}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Highest revenue item</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {topItems.data.length > 0 
+                    {topItems.data.length > 0
                       ? topItems.data.reduce((max, item) => item.total_revenue > max.total_revenue ? item : max, topItems.data[0]).menu_name
                       : 'N/A'
                     }
@@ -495,19 +618,19 @@ const Sales: React.FC = () => {
                     {salesInsights.data.summary.completion_rate}%
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Cancelled Rate</span>
                   <span className="text-sm font-medium text-red-600">
-                    {salesInsights.data.summary.total_orders > 0 
+                    {salesInsights.data.summary.total_orders > 0
                       ? ((salesInsights.data.summary.cancelled_orders / salesInsights.data.summary.total_orders) * 100).toFixed(1)
                       : '0'
                     }%
                   </span>
                 </div>
-                
+
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                  <div 
+                  <div
                     className="bg-green-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${parseFloat(salesInsights.data.summary.completion_rate)}%` }}
                   ></div>
