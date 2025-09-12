@@ -241,3 +241,29 @@ export interface TopSellingItemsResponse {
   };
   count: number;
 }
+
+// Inventory & Ingredients
+export interface Ingredient {
+  id?: number | string;
+  name: string;
+  unit: string; // e.g., ml, g, pcs
+  stock: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UpsertIngredientInput {
+  name: string;
+  unit: string;
+  stock?: number;
+}
+
+export interface AddStockInput {
+  name: string;
+  quantity: number;
+}
+
+export interface RecipeItemInput {
+  ingredient_name: string;
+  quantity: number;
+}

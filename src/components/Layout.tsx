@@ -13,6 +13,7 @@ import {
   Languages,
   BarChart3,
   Home,
+  Boxes,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -25,6 +26,7 @@ const Layout: React.FC = () => {
     { name: 'Dashboard', href: '/', icon: Home },
     { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
     { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
+    { name: 'Inventory', href: '/inventory', icon: Boxes },
     { name: 'Sales', href: '/sales', icon: BarChart3 },
     { name: t('nav.settings'), href: '/settings', icon: Settings },
   ];
@@ -52,6 +54,8 @@ const Layout: React.FC = () => {
         return 'Menu Management';
       case '/sales':
         return 'Sales Analytics';
+      case '/inventory':
+        return 'Inventory';
       case '/settings':
         return 'Settings';
       default:

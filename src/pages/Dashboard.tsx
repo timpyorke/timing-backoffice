@@ -40,11 +40,11 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
-      
+
       // Fetch sales insights for the last 7 days
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
+
       // Fetch data separately to handle individual failures
       try {
         const salesResponse = await apiService.getSalesInsights({ start_date: startDate, end_date: endDate });
@@ -58,7 +58,7 @@ const Dashboard: React.FC = () => {
       try {
         const todayResponse = await apiService.getDailySales(today);
         console.log('Today response:', todayResponse);
-        
+
         // Handle new API response structure: { success: true, data: DailySales }
         if (todayResponse && typeof todayResponse === 'object') {
           const response = todayResponse as any;
@@ -77,7 +77,7 @@ const Dashboard: React.FC = () => {
         console.warn('Failed to fetch today sales:', todayError);
         setTodaySales(null);
       }
-      
+
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       // Set empty data on error
@@ -206,8 +206,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Completion Rate */}
-      {todaySales?.completion_rate && (
+      {/* Completion Rate (show only if > 0) */}
+      {Number(todaySales?.completion_rate as any) > 0 && (
         <div className="card p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -216,10 +216,10 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Completion Rate</p>
               <p className="text-2xl font-bold text-gray-900">
-                {todaySales.completion_rate}%
+                {todaySales?.completion_rate}%
               </p>
               <p className="text-sm text-gray-600">
-                {todaySales.completed_orders} of {todaySales.total_orders} completed
+                {todaySales?.completed_orders} of {todaySales?.total_orders} completed
               </p>
             </div>
           </div>
@@ -237,7 +237,7 @@ const Dashboard: React.FC = () => {
             <Clock className="h-8 w-8 text-blue-500" />
           </div>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -247,7 +247,7 @@ const Dashboard: React.FC = () => {
             <Users className="h-8 w-8 text-yellow-500" />
           </div>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -257,7 +257,7 @@ const Dashboard: React.FC = () => {
             <CheckCircle className="h-8 w-8 text-green-500" />
           </div>
         </div>
-        
+
         <div className="card p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -311,7 +311,7 @@ const Dashboard: React.FC = () => {
                           ฿{formatPrice(Number(order.total))}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {order.created_at 
+                          {order.created_at
                             ? new Date(order.created_at).toLocaleTimeString('th-TH')
                             : 'N/A'
                           }
