@@ -206,8 +206,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Completion Rate */}
-      {todaySales?.completion_rate && (
+      {/* Completion Rate (show only if > 0) */}
+      {Number(todaySales?.completion_rate as any) > 0 && (
         <div className="card p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -216,10 +216,10 @@ const Dashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Completion Rate</p>
               <p className="text-2xl font-bold text-gray-900">
-                {todaySales.completion_rate}%
+                {todaySales?.completion_rate}%
               </p>
               <p className="text-sm text-gray-600">
-                {todaySales.completed_orders} of {todaySales.total_orders} completed
+                {todaySales?.completed_orders} of {todaySales?.total_orders} completed
               </p>
             </div>
           </div>
