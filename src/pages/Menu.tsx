@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import MenuItemModal from '@/components/MenuItemModal';
+import RecipeModal from '@/components/RecipeModal';
 import NoBackendMessage from '@/components/NoBackendMessage';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getMenuItemName, getMenuItemDescription, getMenuItemCategory } from '@/utils/localization';
@@ -27,6 +28,8 @@ const Menu: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [apiError, setApiError] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  const [recipeMenuId, setRecipeMenuId] = useState<string>('');
 
   const fetchMenuItems = async () => {
     try {
@@ -92,6 +95,11 @@ const Menu: React.FC = () => {
       console.error('Failed to delete menu item:', error);
       toast.error(t('common.error'));
     }
+  };
+
+  const openRecipe = (item: MenuItem) => {
+    setRecipeMenuId(String(item.id));
+    setRecipeOpen(true);
   };
 
   const handleToggleAvailability = async (item: MenuItem) => {
@@ -348,6 +356,14 @@ const Menu: React.FC = () => {
                 </button>
 
                 <button
+                  onClick={() => openRecipe(item)}
+                  className="p-2 rounded-md bg-purple-100 text-purple-700 hover:bg-purple-200 tap-target inline-flex items-center justify-center"
+                  title="Set recipe"
+                >
+                  R
+                </button>
+
+                <button
                   onClick={() => handleDelete(item)}
                   className="p-2 rounded-md bg-red-100 text-red-700 hover:bg-red-200 tap-target inline-flex items-center justify-center"
                 >
@@ -400,6 +416,13 @@ const Menu: React.FC = () => {
         }}
         onSave={handleSaveItem}
         item={editingItem}
+      />
+
+      <RecipeModal
+        isOpen={recipeOpen}
+        menuId={recipeMenuId}
+        onClose={() => setRecipeOpen(false)}
+        onSaved={() => {/* no-op */}}
       />
     </div>
   );

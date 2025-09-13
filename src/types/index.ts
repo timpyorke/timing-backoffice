@@ -4,6 +4,7 @@ export interface Order {
     name: string;
     email?: string;
     phone?: string;
+    table_number?: string;
   };
   customer_id?: string;
   items: OrderItem[];
@@ -26,6 +27,7 @@ export interface ApiStatusUpdateResponse {
       name: string;
       email?: string;
       phone?: string;
+      table_number?: string;
     };
     status: OrderStatus;
     total?: string | number;
@@ -64,6 +66,7 @@ export interface CreateOrderInput {
     name: string;
     email?: string;
     phone?: string;
+    table_number?: string;
   };
   customer_id?: string;
   items: Array<{
@@ -95,9 +98,9 @@ export function normalizeOrderStatus(status: string | undefined | null): OrderSt
     console.warn(`Order status is undefined or null, defaulting to pending`);
     return 'pending';
   }
-  
+
   const normalized = status.toLowerCase() as OrderStatus;
-  
+
   // Map common variations
   switch (normalized) {
     case 'pending':
@@ -237,6 +240,60 @@ export interface TopSellingItemsResponse {
     end_date: string;
   };
   count: number;
+}
+
+// Hourly sales breakdown (for curve graph)
+export interface HourlyDataPoint {
+  hour: number; // 0-23
+  items_sold: number;
+  orders_count: number;
+  revenue: number; // numeric revenue (not string)
+}
+
+export interface HourlyTotals {
+  items_sold: number;
+  orders_count: number;
+  revenue: number;
+}
+
+export interface HourlySalesResponse {
+  success: boolean;
+  data: {
+    date?: string | null;
+    period: {
+      start_date: string | null;
+      end_date: string | null;
+      all_time: boolean;
+    };
+    hourly: HourlyDataPoint[];
+    totals: HourlyTotals;
+  };
+}
+
+// Inventory & Ingredients
+export interface Ingredient {
+  id?: number | string;
+  name: string;
+  unit: string; // e.g., ml, g, pcs
+  stock: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UpsertIngredientInput {
+  name: string;
+  unit: string;
+  stock?: number;
+}
+
+export interface AddStockInput {
+  name: string;
+  quantity: number;
+}
+
+export interface RecipeItemInput {
+  ingredient_name: string;
+  quantity: number;
 }
 
 // Daily break comparison between today and yesterday

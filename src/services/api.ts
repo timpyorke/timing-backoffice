@@ -1,8 +1,10 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, DailyBreakResponse } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput, HourlySalesResponse, DailyBreakResponse } from '@/types';
 import { auth } from '@/services/firebase';
 import { safeStorage } from '@/utils/safeStorage';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+// Prefer explicit env override, else browser's local timezone, else UTC
+const DEFAULT_TIMEZONE = (import.meta as any).env?.VITE_TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
 class ApiService {
   private refreshTokenPromise: Promise<string> | null = null;
@@ -14,15 +16,15 @@ class ApiService {
     }
 
     const orderData = order as Record<string, unknown>;
-    
+
     return {
       id: orderData.id ? String(orderData.id) : '',
       customer_info: this.normalizeCustomerInfo(orderData.customer_info),
       items: this.normalizeOrderItems(orderData.items),
       total: this.normalizeTotal(orderData.total),
       status: normalizeOrderStatus(orderData.status as string),
-      created_at: orderData.created_at as string || new Date().toISOString(),
-      updated_at: orderData.updated_at as string || new Date().toISOString(),
+      created_at: this.normalizeDate(orderData.created_at),
+      updated_at: this.normalizeDate(orderData.updated_at),
       customer_id: orderData.customer_id as string,
       estimatedTime: orderData.estimatedTime as number,
       specialInstructions: orderData.specialInstructions as string,
@@ -36,12 +38,12 @@ class ApiService {
     if (!customerInfo || typeof customerInfo !== 'object') {
       return { name: 'Unknown Customer' };
     }
-    
     const info = customerInfo as Record<string, unknown>;
     return {
       name: (info.name as string) || 'Unknown Customer',
       email: info.email as string,
       phone: info.phone as string,
+      table_number: info.table_number as string,
     };
   }
 
@@ -49,12 +51,12 @@ class ApiService {
     if (!Array.isArray(items)) {
       return [];
     }
-    
+
     return items.map((item: unknown) => {
       if (!item || typeof item !== 'object') {
         throw new Error('Invalid order item data');
       }
-      
+
       const itemData = item as Record<string, unknown>;
       return {
         id: itemData.id as number,
@@ -81,6 +83,38 @@ class ApiService {
     return 0;
   }
 
+  // Ensure date-like values become ISO strings
+  private normalizeDate(value: unknown): string {
+    try {
+      // String: attempt to parse; fallback to original if valid
+      if (typeof value === 'string') {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+      // Number: treat as epoch millis
+      if (typeof value === 'number') {
+        const d = new Date(value);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+      // Date instance
+      if (value instanceof Date) {
+        return isNaN(value.getTime()) ? new Date().toISOString() : value.toISOString();
+      }
+      // Firestore Timestamp-like { seconds, nanoseconds }
+      if (value && typeof value === 'object' && 'seconds' in (value as any)) {
+        const seconds = Number((value as any).seconds);
+        const nanos = Number((value as any).nanoseconds || 0);
+        const ms = seconds * 1000 + Math.floor(nanos / 1e6);
+        const d = new Date(ms);
+        return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+      }
+    } catch (_) {
+      // ignore and fallback below
+    }
+    // Fallback to now
+    return new Date().toISOString();
+  }
+
   // Helper function to normalize array of orders
   private normalizeOrders(orders: unknown[]): Order[] {
     return orders.map(order => this.normalizeOrder(order));
@@ -103,12 +137,12 @@ class ApiService {
 
       // Check if token needs refresh (Firebase handles this internally)
       const token = await user.getIdToken(false); // false = don't force refresh
-      
+
       // Update localStorage with the current token
       if (token) {
         safeStorage.setItem('token', token);
       }
-      
+
       return token;
     } catch (error) {
       console.error('Error getting valid token:', error);
@@ -123,7 +157,7 @@ class ApiService {
     }
 
     this.refreshTokenPromise = this.performTokenRefresh();
-    
+
     try {
       const token = await this.refreshTokenPromise;
       return token;
@@ -141,7 +175,7 @@ class ApiService {
 
       // Force refresh the token
       const newToken = await user.getIdToken(true);
-      
+
       if (newToken) {
         localStorage.setItem('token', newToken);
         console.log('Token refreshed successfully');
@@ -174,24 +208,24 @@ class ApiService {
         headers,
         ...options,
       });
-      
-      
+
+
       if (response.status === 401) {
         console.log('Token expired, attempting refresh...');
-        
+
         try {
           await this.refreshToken();
-          
+
           const newHeaders = await this.getHeaders();
           const retryResponse = await fetch(url, {
             headers: newHeaders,
             ...options,
           });
-          
+
           if (!retryResponse.ok) {
             throw new Error(`API Error: ${retryResponse.status} ${retryResponse.statusText}`);
           }
-          
+
           return retryResponse.json();
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
@@ -219,12 +253,12 @@ class ApiService {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.date) params.append('date', filters.date);
     if (filters?.limit) params.append('limit', filters.limit.toString());
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/orders${queryString ? `?${queryString}` : ''}`;
-    
+
     const result = await this.request<any>(endpoint);
-    
+
     // Handle different API response structures
     if (Array.isArray(result)) {
       const normalized = this.normalizeOrders(result);
@@ -246,15 +280,15 @@ class ApiService {
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order | ApiStatusUpdateResponse> {
     console.log(`API: Updating order ${orderId} to status ${status}`);
-    
+
     try {
       const result = await this.request<ApiStatusUpdateResponse | Order>(`/admin/orders/${orderId}/status`, {
         method: 'PUT',
         body: JSON.stringify({ status }),
       });
-      
+
       console.log(`API: Raw response for order ${orderId}:`, result);
-      
+
       // Check if response is nested format
       if (this.isApiStatusUpdateResponse(result)) {
         // Return the nested response as-is for OrderDetails to handle
@@ -272,10 +306,10 @@ class ApiService {
   }
 
   private isApiStatusUpdateResponse(response: unknown): response is ApiStatusUpdateResponse {
-    return typeof response === 'object' && 
-           response !== null && 
-           'success' in response && 
-           'data' in response;
+    return typeof response === 'object' &&
+      response !== null &&
+      'success' in response &&
+      'data' in response;
   }
 
   async getMenuItems(): Promise<MenuItem[]> {
@@ -322,12 +356,12 @@ class ApiService {
 
   async getOrder(orderId: string): Promise<Order> {
     const result = await this.request<any>(`/admin/orders/${orderId}`);
-    
+
     // Handle new API response structure: { success: true, data: Order }
     if (result && result.success && result.data) {
       return this.normalizeOrder(result.data);
     }
-    
+
     return this.normalizeOrder(result);
   }
 
@@ -401,11 +435,11 @@ class ApiService {
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     const url = `${API_BASE_URL.replace('/api', '')}/health`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Health check failed: ${response.status} ${response.statusText}`);
     }
-    
+
     return response.json();
   }
 
@@ -416,10 +450,10 @@ class ApiService {
     const params = new URLSearchParams();
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/sales/insights${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request(endpoint);
   }
 
@@ -432,11 +466,152 @@ class ApiService {
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
     if (filters?.limit) params.append('limit', filters.limit.toString());
-    
+
     const queryString = params.toString();
     const endpoint = `/admin/sales/top-items${queryString ? `?${queryString}` : ''}`;
-    
+
     return this.request(endpoint);
+  }
+
+  async getHourlySales(filters?: {
+    date?: string; // specific day (local time)
+    start_date?: string; // for range (local time)
+    end_date?: string; // for range (local time)
+    tz?: string; // IANA timezone e.g., Asia/Bangkok
+  }): Promise<HourlySalesResponse> {
+    const params = new URLSearchParams();
+    if (filters?.date) params.append('date', filters.date);
+    if (filters?.start_date) params.append('start_date', filters.start_date);
+    if (filters?.end_date) params.append('end_date', filters.end_date);
+    // Always include timezone
+    params.append('tz', filters?.tz ?? DEFAULT_TIMEZONE);
+
+    // All-time: no params
+    const queryString = params.toString();
+    const endpoint = `/admin/sales/hourly${queryString ? `?${queryString}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  // Ingredients & Inventory
+  async getIngredients(): Promise<Ingredient[]> {
+    const result = await this.request<any>('/admin/ingredients');
+    // Accept a wide range of shapes
+    if (Array.isArray(result)) return result as Ingredient[];
+    if (result && typeof result === 'object') {
+      const r: any = result;
+      // Common envelopes
+      if (Array.isArray(r.data)) return r.data as Ingredient[];
+      if (r.success && r.data && Array.isArray(r.data.items)) return r.data.items as Ingredient[];
+      if (r.success && Array.isArray(r.items)) return r.items as Ingredient[];
+      // Ingredients key variants
+      if (Array.isArray(r.ingredients)) return r.ingredients as Ingredient[];
+      if (r.data && Array.isArray(r.data.ingredients)) return r.data.ingredients as Ingredient[];
+      if (Array.isArray(r.items)) return r.items as Ingredient[];
+    }
+    console.warn('API: Unexpected ingredients response structure:', result);
+    return [];
+  }
+
+  async upsertIngredient(payload: UpsertIngredientInput): Promise<Ingredient> {
+    const result = await this.request<any>('/admin/ingredients', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result && result.data) return result.data as Ingredient;
+    return result as Ingredient;
+  }
+
+  async addIngredientStock(payload: AddStockInput): Promise<Ingredient | { success: boolean }> {
+    const result = await this.request<any>('/admin/ingredients/add-stock', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return result;
+  }
+
+  async setMenuRecipe(menuId: string | number, items: RecipeItemInput[]): Promise<{ success: boolean } | any> {
+    const result = await this.request<any>(`/admin/menu/${menuId}/recipe`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    });
+    return result;
+  }
+
+  async getMenuRecipe(menuId: string | number): Promise<RecipeItemInput[]> {
+    const res = await this.request<any>(`/admin/menu/${menuId}/recipe`);
+
+    // Normalize a variety of possible response shapes
+    const pickItems = (obj: any): any[] | null => {
+      if (!obj) return null;
+      if (Array.isArray(obj)) return obj;
+      if (Array.isArray(obj.items)) return obj.items;
+      if (obj.data) return pickItems(obj.data);
+      if (obj.recipe) return pickItems(obj.recipe);
+      return null;
+    };
+
+    const rawItems = pickItems(res) || [];
+    const normalized: RecipeItemInput[] = rawItems.map((it: any) => {
+      // Try several common shapes
+      const name = it.ingredient_name || it.name || it.ingredient?.name || it.ingredient || '';
+      const qty = typeof it.quantity === 'number'
+        ? it.quantity
+        : typeof it.quantity_per_unit === 'number'
+          ? it.quantity_per_unit
+          : typeof it.qty === 'number'
+            ? it.qty
+            : Number(it.quantity) || Number(it.quantity_per_unit) || Number(it.qty) || 0;
+      return {
+        ingredient_name: String(name),
+        quantity: Number(qty) || 0,
+      };
+    }).filter((x: RecipeItemInput) => x.ingredient_name);
+
+    return normalized;
+  }
+
+  async deleteIngredient(identifier: { id?: string | number; name?: string }): Promise<boolean> {
+    const { id, name } = identifier;
+    // Try DELETE by id or name path
+    const tryDelete = async (endpoint: string, opts?: RequestInit) => {
+      try {
+        await this.request(endpoint, { method: 'DELETE', ...(opts || {}) });
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+
+    // Primary attempts
+    if (id != null) {
+      if (await tryDelete(`/admin/ingredients/${encodeURIComponent(String(id))}`)) return true;
+    }
+    if (name) {
+      if (await tryDelete(`/admin/ingredients/${encodeURIComponent(name)}`)) return true;
+      // Some APIs accept body on DELETE
+      if (await tryDelete(`/admin/ingredients`, { body: JSON.stringify({ name }) })) return true;
+    }
+
+    // Fallback patterns observed in some APIs
+    try {
+      const res = await this.request(`/admin/ingredients/delete`, {
+        method: 'POST',
+        body: JSON.stringify({ id, name }),
+      });
+      return !!res;
+    } catch (_) {
+      // As a last resort, attempt PUT to mark inactive (soft delete), if supported
+      if (id != null) {
+        try {
+          await this.request(`/admin/ingredients/${encodeURIComponent(String(id))}`, {
+            method: 'PUT',
+            body: JSON.stringify({ active: false }),
+          });
+          return true;
+        } catch (_) { }
+      }
+    }
+    return false;
   }
 
   // GET /api/admin/sales/daily-break
