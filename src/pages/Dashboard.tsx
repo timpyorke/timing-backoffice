@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
         console.warn('Failed to fetch daily break:', e);
         setDailyBreak(null);
       }
-      
+
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       // Set empty data on error
@@ -170,7 +170,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Today's Revenue */}
         <div className="card p-6">
           <div className="flex items-center">
@@ -206,7 +206,52 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Average Order Value */}
+        {/* Total Active Orders (moved up) */}
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Clock className="h-8 w-8 text-orange-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Active Orders</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {orderStats.pending + orderStats.preparing + orderStats.ready}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Completion Rate (grid) */}
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">Completion Rate</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {(() => {
+                  let display = '0%';
+                  if (todaySales?.completion_rate) {
+                    const r = String(todaySales.completion_rate).replace('%', '');
+                    display = `${r}%`;
+                  } else if (typeof todaySales?.completed_orders === 'number' && typeof todaySales?.total_orders === 'number' && todaySales.total_orders > 0) {
+                    const r = Math.round((todaySales.completed_orders / todaySales.total_orders) * 100);
+                    display = `${r}%`;
+                  }
+                  return display;
+                })()}
+              </p>
+              {typeof todaySales?.completed_orders === 'number' && typeof todaySales?.total_orders === 'number' && (
+                <p className="text-sm text-gray-600">
+                  {todaySales.completed_orders} of {todaySales.total_orders} completed
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Average Order Value (moved down) */}
         <div className="card p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -223,21 +268,6 @@ const Dashboard: React.FC = () => {
                     : (todaySales?.averageOrderValue || (todaySales?.total_revenue && todaySales?.total_orders ? todaySales.total_revenue / todaySales.total_orders : 0));
                   return `฿${formatPrice(Number(avg))}`;
                 })()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Total Active Orders */}
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Active Orders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orderStats.pending + orderStats.preparing + orderStats.ready}
               </p>
             </div>
           </div>
@@ -289,25 +319,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Completion Rate */}
-      {todaySales?.completion_rate && (
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {todaySales?.completion_rate}%
-              </p>
-              <p className="text-sm text-gray-600">
-                {todaySales?.completed_orders} of {todaySales?.total_orders} completed
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Order Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
