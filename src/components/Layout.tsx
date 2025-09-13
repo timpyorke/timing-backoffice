@@ -31,12 +31,12 @@ const Layout: React.FC = () => {
   const location = useLocation();
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
+    { name: t('nav.dashboard'), href: '/', icon: Home },
     { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
     { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
-    { name: 'Sales', href: '/sales', icon: BarChart3 },
+    { name: t('nav.sales'), href: '/sales', icon: BarChart3 },
     { name: t('nav.settings'), href: '/settings', icon: Settings },
-    { name: 'Logout', href: '/logout', icon: LogOut },
+    { name: t('nav.logout'), href: '/logout', icon: LogOut },
   ];
 
   const handleLogout = async () => {

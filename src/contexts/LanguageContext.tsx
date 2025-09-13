@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { safeStorage } from '@/utils/safeStorage';
 
 export type Language = 'en' | 'th';
 
@@ -11,9 +12,12 @@ interface LanguageContextType {
 const translations = {
   en: {
     // Navigation
+    'nav.dashboard': 'Dashboard',
     'nav.orders': 'Orders',
     'nav.menu': 'Menu',
     'nav.settings': 'Settings',
+    'nav.sales': 'Sales',
+    'nav.logout': 'Logout',
     'header.dashboard': 'Back Office',
     
     // Orders
@@ -27,6 +31,8 @@ const translations = {
     'orders.viewDetails': 'View Details',
     'orders.total': 'Total',
     'orders.noOrders': 'No orders found',
+    'orders.confirmCancel': 'Cancel this order? This cannot be undone.',
+    'orders.orderedAt': 'Order at',
     
     // Order Status
     'status.pending': 'Pending',
@@ -134,6 +140,7 @@ const translations = {
     'common.success': 'Success',
     'common.cancel': 'Cancel',
     'common.save': 'Save',
+    'common.clear': 'Clear',
     'common.delete': 'Delete',
     'common.edit': 'Edit',
     'common.back': 'Back',
@@ -145,6 +152,8 @@ const translations = {
     'common.add': 'Add',
     'common.select': 'Select',
     'common.unitPrice': 'Unit price',
+    'common.refresh': 'Refresh',
+    'common.view': 'View',
 
     // Create Order
     'createOrder.title': 'Create Order',
@@ -167,12 +176,103 @@ const translations = {
     'createOrder.loadingMenu': 'Loading menu...',
     'createOrder.noMenu': 'No menu items found. Please add items in Menu Management first.',
     'createOrder.noDiscount': 'No discount',
+
+    // Settings
+    'settings.title': 'Settings',
+    'settings.appSettings': 'App Settings',
+    'settings.language': 'Language',
+    'settings.autoRefreshInterval': 'Auto Refresh Interval (seconds)',
+    'settings.currentValue': 'Current value',
+    'settings.shop': 'Shop',
+    'settings.clientStatus': 'App client status is',
+    'settings.refresh': 'Refresh',
+    'settings.refreshing': 'Refreshing...',
+    'settings.systemInformation': 'System Information',
+    'settings.appVersion': 'App Version',
+    'settings.lastUpdated': 'Last Updated',
+    'settings.browser': 'Browser',
+    'settings.platform': 'Platform',
+    'settings.saveSettings': 'Save Settings',
+    'settings.userProfile': 'User Profile',
+    'settings.role': 'Role',
+
+    // Dashboard
+    'dashboard.todaysRevenue': "Today's Revenue",
+    'dashboard.todaysOrders': "Today's Orders",
+    'dashboard.avgOrderValue': 'Avg. Order Value',
+    'dashboard.activeOrders': 'Active Orders',
+    'dashboard.completionRate': 'Completion Rate',
+    'dashboard.recentOrders': 'Recent Orders',
+    'dashboard.noOrdersYet': 'No orders yet',
+    'dashboard.viewAll': 'View all',
+    'dashboard.manageOrders': 'Manage Orders',
+    'dashboard.manageOrdersDesc': 'View and update order status',
+    'dashboard.menuManagement': 'Menu Management',
+    'dashboard.menuManagementDesc': 'Update menu items and prices',
+    'dashboard.settings': 'Settings',
+    'dashboard.settingsDesc': 'Configure app settings',
+    'dashboard.teaCupProgress': 'Tea Cup Progress',
+    'dashboard.record': 'Record!',
+    'dashboard.vsYesterday': 'vs yesterday',
+    'dashboard.toBreak': 'to break',
+
+    // Sales page extra
+    // 'sales.title' already defined above
+    'sales.hourlyCurve': 'Hourly Sales (Curve)',
+    'sales.specificDay': 'Specific day',
+    'sales.dateRange': 'Date range',
+    'sales.allTime': 'All-time',
+    'sales.useDateRange': 'Use Date Range',
+    'sales.showAllTime': 'Show All Time',
+    'sales.metric': 'Metric',
+    'sales.revenue': 'Revenue',
+    'sales.orders': 'Orders',
+    'sales.itemsSold': 'Items sold',
+    'sales.noHourlyData': 'No hourly data.',
+    'sales.periodAllTime': 'Sales Period: All time',
+    'sales.periodRange': 'Sales Period',
+    'sales.to': 'to',
+    // 'sales.topItems' already defined above
+    'sales.rank': 'Rank',
+    'sales.itemName': 'Item Name',
+    'sales.category': 'Category',
+    'sales.quantitySold': 'Quantity Sold',
+    'sales.revenueCol': 'Revenue',
+    'sales.percentageOfSales': 'Percentage of Sales',
+    'sales.revenueInsights': 'Revenue Insights',
+    'sales.completedRevenue': 'Completed Revenue',
+    'sales.bestCategory': 'Best selling category',
+    'sales.highestRevenueItem': 'Highest revenue item',
+    'sales.topItemShare': 'Top item share',
+    'sales.orderPerformance': 'Order Performance',
+    'sales.cancelledRate': 'Cancelled Rate',
+    'sales.orderCompletionProgress': 'Order completion progress',
+    'sales.ordersCompleted': 'Orders completed successfully',
+    'sales.noDataHint': 'No sales data found for the selected period. Try adjusting your date range.',
+    'sales.retry': 'Retry Loading Data',
+    'sales.startDate': 'Start Date',
+    'sales.endDate': 'End Date',
+    'sales.dailyBreakdown': 'Daily Breakdown',
+    'sales.items': 'items',
+    'sales.found': 'found',
+    'sales.totals': 'Totals',
+    'sales.day': 'Day',
+    'sales.rangeLabel': 'Range',
+    'sales.noItemsSold': 'No items were sold.',
+    'sales.totalRevenueLower': 'total revenue',
+    'sales.avgPrice': 'avg price',
+    
+    // Common extra
+    'common.status': 'Status',
   },
   th: {
     // Navigation
+    'nav.dashboard': 'แดชบอร์ด',
     'nav.orders': 'คำสั่งซื้อ',
     'nav.menu': 'เมนู',
     'nav.settings': 'ตั้งค่า',
+    'nav.sales': 'ยอดขาย',
+    'nav.logout': 'ออกจากระบบ',
     'header.dashboard': 'แดชบอร์ดแบ็คออฟฟิศ',
     
     // Orders
@@ -186,6 +286,8 @@ const translations = {
     'orders.viewDetails': 'ดูรายละเอียด',
     'orders.total': 'รวม',
     'orders.noOrders': 'ไม่พบคำสั่งซื้อ',
+    'orders.confirmCancel': 'ยกเลิกคำสั่งซื้อนี้? ไม่สามารถย้อนกลับได้',
+    'orders.orderedAt': 'เวลาสั่งซื้อ',
     
     // Order Status
     'status.pending': 'รอดำเนินการ',
@@ -293,6 +395,7 @@ const translations = {
     'common.success': 'สำเร็จ',
     'common.cancel': 'ยกเลิก',
     'common.save': 'บันทึก',
+    'common.clear': 'ล้าง',
     'common.delete': 'ลบ',
     'common.edit': 'แก้ไข',
     'common.back': 'ย้อนกลับ',
@@ -304,6 +407,8 @@ const translations = {
     'common.add': 'เพิ่ม',
     'common.select': 'เลือก',
     'common.unitPrice': 'ราคาต่อหน่วย',
+    'common.refresh': 'รีเฟรช',
+    'common.view': 'ดู',
 
     // Create Order
     'createOrder.title': 'สร้างคำสั่งซื้อ',
@@ -326,6 +431,94 @@ const translations = {
     'createOrder.loadingMenu': 'กำลังโหลดเมนู...',
     'createOrder.noMenu': 'ไม่พบรายการเมนู กรุณาเพิ่มในหน้าจัดการเมนูก่อน',
     'createOrder.noDiscount': 'ไม่มีส่วนลด',
+
+    // Settings
+    'settings.title': 'ตั้งค่า',
+    'settings.appSettings': 'การตั้งค่าแอป',
+    'settings.language': 'ภาษา',
+    'settings.autoRefreshInterval': 'ช่วงเวลารีเฟรชอัตโนมัติ (วินาที)',
+    'settings.currentValue': 'ค่าปัจจุบัน',
+    'settings.shop': 'ร้านค้า',
+    'settings.clientStatus': 'สถานะของแอปไคลเอนต์คือ',
+    'settings.refresh': 'รีเฟรช',
+    'settings.refreshing': 'กำลังรีเฟรช...',
+    'settings.systemInformation': 'ข้อมูลระบบ',
+    'settings.appVersion': 'เวอร์ชันแอป',
+    'settings.lastUpdated': 'อัปเดตล่าสุด',
+    'settings.browser': 'เบราว์เซอร์',
+    'settings.platform': 'แพลตฟอร์ม',
+    'settings.saveSettings': 'บันทึกการตั้งค่า',
+    'settings.userProfile': 'โปรไฟล์ผู้ใช้',
+    'settings.role': 'บทบาท',
+
+    // Dashboard
+    'dashboard.todaysRevenue': 'รายได้วันนี้',
+    'dashboard.todaysOrders': 'ออเดอร์วันนี้',
+    'dashboard.avgOrderValue': 'มูลค่าเฉลี่ยต่อออเดอร์',
+    'dashboard.activeOrders': 'ออเดอร์ที่กำลังดำเนินการ',
+    'dashboard.completionRate': 'อัตราการเสร็จสิ้น',
+    'dashboard.recentOrders': 'ออเดอร์ล่าสุด',
+    'dashboard.noOrdersYet': 'ยังไม่มีออเดอร์',
+    'dashboard.viewAll': 'ดูทั้งหมด',
+    'dashboard.manageOrders': 'จัดการออเดอร์',
+    'dashboard.manageOrdersDesc': 'ดูและอัปเดตสถานะออเดอร์',
+    'dashboard.menuManagement': 'จัดการเมนู',
+    'dashboard.menuManagementDesc': 'อัปเดตรายการและราคาเมนู',
+    'dashboard.settings': 'ตั้งค่า',
+    'dashboard.settingsDesc': 'ปรับแต่งการตั้งค่าแอป',
+    'dashboard.teaCupProgress': 'ความคืบหน้าถ้วยชา',
+    'dashboard.record': 'ทำสถิติ!',
+    'dashboard.vsYesterday': 'เทียบกับเมื่อวาน',
+    'dashboard.toBreak': 'เพื่อทำลายสถิติ',
+
+    // Sales page extra
+    // 'sales.title' already defined above
+    'sales.hourlyCurve': 'กราฟยอดขายรายชั่วโมง',
+    'sales.specificDay': 'วันเฉพาะ',
+    'sales.dateRange': 'ช่วงวันที่',
+    'sales.allTime': 'ตลอดเวลา',
+    'sales.useDateRange': 'ใช้ช่วงวันที่',
+    'sales.showAllTime': 'แสดงตลอดเวลา',
+    'sales.metric': 'ตัวชี้วัด',
+    'sales.revenue': 'รายได้',
+    'sales.orders': 'คำสั่งซื้อ',
+    'sales.itemsSold': 'จำนวนที่ขาย',
+    'sales.noHourlyData': 'ไม่พบข้อมูลรายชั่วโมง',
+    'sales.periodAllTime': 'ช่วงการขาย: ตลอดเวลา',
+    'sales.periodRange': 'ช่วงการขาย',
+    'sales.to': 'ถึง',
+    // 'sales.topItems' already defined above
+    'sales.rank': 'อันดับ',
+    'sales.itemName': 'ชื่อสินค้า',
+    'sales.category': 'หมวดหมู่',
+    'sales.quantitySold': 'จำนวนที่ขาย',
+    'sales.revenueCol': 'รายได้',
+    'sales.percentageOfSales': 'เปอร์เซ็นต์ของยอดขาย',
+    'sales.revenueInsights': 'ข้อมูลรายได้',
+    'sales.completedRevenue': 'รายได้ที่เสร็จสิ้น',
+    'sales.bestCategory': 'หมวดหมู่ขายดีที่สุด',
+    'sales.highestRevenueItem': 'รายการที่มีรายได้สูงสุด',
+    'sales.topItemShare': 'สัดส่วนของสินค้าท็อป',
+    'sales.orderPerformance': 'ประสิทธิภาพคำสั่งซื้อ',
+    'sales.cancelledRate': 'อัตรายกเลิก',
+    'sales.orderCompletionProgress': 'ความคืบหน้าการเสร็จสิ้นคำสั่งซื้อ',
+    'sales.ordersCompleted': 'คำสั่งซื้อที่เสร็จสิ้นสำเร็จ',
+    'sales.noDataHint': 'ไม่พบข้อมูลการขายสำหรับช่วงที่เลือก โปรดลองปรับช่วงวันที่',
+    'sales.retry': 'ลองโหลดข้อมูลอีกครั้ง',
+    'sales.startDate': 'วันที่เริ่มต้น',
+    'sales.endDate': 'วันที่สิ้นสุด',
+    'sales.dailyBreakdown': 'สรุปรายวัน',
+    'sales.items': 'รายการ',
+    'sales.found': 'ที่พบ',
+    'sales.totals': 'รวม',
+    'sales.day': 'วัน',
+    'sales.rangeLabel': 'ช่วง',
+    'sales.noItemsSold': 'ไม่มีสินค้าที่ถูกขาย',
+    'sales.totalRevenueLower': 'รายได้รวม',
+    'sales.avgPrice': 'ราคาเฉลี่ย',
+    
+    // Common extra
+    'common.status': 'สถานะ',
   }
 };
 
@@ -359,4 +552,3 @@ export const useLanguage = () => {
   }
   return context;
 };
-import { safeStorage } from '@/utils/safeStorage';

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useOrders } from '@/hooks/useOrders';
 import { apiService } from '@/services/api';
 import { DailySales, SalesInsights, DailyBreakResponse } from '@/types';
@@ -128,7 +129,8 @@ const Dashboard: React.FC = () => {
   };
 
   // Page header title shown inside page section
-  const headerTitle = 'Dashboard';
+  const { t } = useLanguage();
+  const headerTitle = t('nav.dashboard');
 
   if (loading) {
     return (
@@ -163,7 +165,7 @@ const Dashboard: React.FC = () => {
           className="btn-primary flex items-center space-x-2"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </button>
       </div>
 
@@ -176,7 +178,7 @@ const Dashboard: React.FC = () => {
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.todaysRevenue')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
                   const ordersRevenue = Array.isArray(orders)
@@ -196,7 +198,7 @@ const Dashboard: React.FC = () => {
               <ShoppingCart className="h-8 w-8 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Today's Orders</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.todaysOrders')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {todaySales?.completed_orders ?? todaySales?.total_orders ?? (todaySales as any)?.totalOrders ?? 0}
               </p>
@@ -211,7 +213,7 @@ const Dashboard: React.FC = () => {
               <Clock className="h-8 w-8 text-orange-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Active Orders</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.activeOrders')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {orderStats.pending + orderStats.preparing + orderStats.ready}
               </p>
@@ -226,7 +228,7 @@ const Dashboard: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completion Rate</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.completionRate')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
                   let display = '0%';
@@ -256,7 +258,7 @@ const Dashboard: React.FC = () => {
               <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Avg. Order Value</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.avgOrderValue')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
                   const completedRev = (todaySales as any)?.completed_revenue;
@@ -279,11 +281,11 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className={`text-3xl ${dailyBreak.brokeRecord ? 'animate-wiggle' : ''}`}>🍵</span>
               <div>
-                <p className="text-sm font-medium text-gray-500">Tea Cup Progress</p>
+                <p className="text-sm font-medium text-gray-500">{t('dashboard.teaCupProgress')}</p>
                 <p className="text-base text-gray-700">
                   Today {dailyBreak.todayCount} / Yesterday {dailyBreak.yesterdayCount}
                   {dailyBreak.brokeRecord && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Record!</span>
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{t('dashboard.record')}</span>
                   )}
                 </p>
               </div>
@@ -292,7 +294,7 @@ const Dashboard: React.FC = () => {
               <p className={`text-2xl font-bold ${dailyBreak.brokeRecord ? 'text-green-600' : 'text-gray-900'}`}>
                 {dailyBreak.difference >= 0 ? '+' : ''}{dailyBreak.difference}
               </p>
-              <p className="text-xs text-gray-500">vs yesterday</p>
+              <p className="text-xs text-gray-500">{t('dashboard.vsYesterday')}</p>
             </div>
           </div>
           <div className="mt-2">
@@ -311,7 +313,7 @@ const Dashboard: React.FC = () => {
             })()}
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>0</span>
-              <span>{dailyBreak.yesterdayCount} to break</span>
+              <span>{dailyBreak.yesterdayCount} {t('dashboard.toBreak')}</span>
             </div>
           </div>
         </div>
@@ -366,12 +368,12 @@ const Dashboard: React.FC = () => {
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Recent Orders</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('dashboard.recentOrders')}</h3>
             <Link
               to="/orders"
               className="text-primary-600 hover:text-primary-500 text-sm font-medium"
             >
-              View all
+              {t('dashboard.viewAll')}
             </Link>
           </div>
         </div>
@@ -379,8 +381,8 @@ const Dashboard: React.FC = () => {
           {recentOrders.length === 0 ? (
             <div className="px-6 py-8 text-center text-gray-500">
               <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-sm font-medium text-gray-900">No orders yet</h3>
-              <p className="text-sm text-gray-500">Orders will appear here when customers place them.</p>
+              <h3 className="text-sm font-medium text-gray-900">{t('dashboard.noOrdersYet')}</h3>
+              <p className="text-sm text-gray-500">{t('orders.noOrders')}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
@@ -434,8 +436,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <ShoppingCart className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Manage Orders</h3>
-              <p className="text-sm text-gray-500">View and update order status</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.manageOrders')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.manageOrdersDesc')}</p>
             </div>
           </div>
         </Link>
@@ -447,8 +449,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <Calendar className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Menu Management</h3>
-              <p className="text-sm text-gray-500">Update menu items and prices</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.menuManagement')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.menuManagementDesc')}</p>
             </div>
           </div>
         </Link>
@@ -460,8 +462,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <TrendingUp className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Settings</h3>
-              <p className="text-sm text-gray-500">Configure app settings</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.settings')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.settingsDesc')}</p>
             </div>
           </div>
         </Link>
