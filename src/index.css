@@ -88,6 +88,17 @@
     overflow: hidden;
   }
 
+  /* Centered variant to place bursts in the middle of the screen */
+  .fireworks-container.center .firework {
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    /* Use larger burst animation for centered variant */
+    animation-name: firework-burst-big;
+    animation-duration: 1.8s;
+  }
+
   .firework {
     position: absolute;
     width: 6px;
@@ -129,6 +140,13 @@
     0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
     70%  { opacity: 1; }
     100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+  }
+
+  /* Larger scale for centered bursts */
+  @keyframes firework-burst-big {
+    0%   { transform: translate(-50%, -50%) scale(0.35); opacity: 1; }
+    70%  { opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
   }
 
   /* Positions and delays for a few bursts */

@@ -145,9 +145,9 @@ const Dashboard: React.FC = () => {
       {/* Record-broken confetti overlay */}
       {showFireworks && (
         <div className="fixed inset-0 pointer-events-none z-40">
-          <div className="fireworks-container">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <span key={i} className={`firework firework-${i + 1}`} />
+          <div className="fireworks-container center">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className="firework" style={{ animationDelay: `${i * 0.15}s` }} />
             ))}
           </div>
         </div>
