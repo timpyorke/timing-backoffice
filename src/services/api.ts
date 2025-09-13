@@ -1,4 +1,4 @@
-import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput, HourlySalesResponse } from '@/types';
+import { Order, MenuItem, DailySales, OrderStatus, SalesInsights, TopSellingItemsResponse, normalizeOrderStatus, ApiStatusUpdateResponse, CreateOrderInput, Ingredient, UpsertIngredientInput, AddStockInput, RecipeItemInput, HourlySalesResponse, DailyBreakResponse } from '@/types';
 import { auth } from '@/services/firebase';
 import { safeStorage } from '@/utils/safeStorage';
 
@@ -612,6 +612,12 @@ class ApiService {
       }
     }
     return false;
+  }
+
+  // GET /api/admin/sales/daily-break
+  async getDailyBreak(): Promise<DailyBreakResponse> {
+    const endpoint = `/admin/sales/daily-break`;
+    return this.request(endpoint);
   }
 }
 

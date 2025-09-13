@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useOrders } from '@/hooks/useOrders';
 import { apiService } from '@/services/api';
-import { DailySales, SalesInsights } from '@/types';
+import { DailySales, SalesInsights, DailyBreakResponse } from '@/types';
 import {
   ShoppingCart,
   Clock,
@@ -22,6 +23,9 @@ const Dashboard: React.FC = () => {
   const [todaySales, setTodaySales] = useState<DailySales | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dailyBreak, setDailyBreak] = useState<DailyBreakResponse['data'] | null>(null);
+  const [showFireworks, setShowFireworks] = useState(false);
+  const fireworksTimeoutRef = useRef<number | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const { orders } = useOrders({ date: todayStr });
@@ -78,6 +82,26 @@ const Dashboard: React.FC = () => {
         setTodaySales(null);
       }
 
+      // Fetch daily break comparison (today vs yesterday)
+      try {
+        const breakResponse = await apiService.getDailyBreak();
+        if (breakResponse && breakResponse.success && breakResponse.data) {
+          setDailyBreak(breakResponse.data);
+          if (breakResponse.data.brokeRecord) {
+            setShowFireworks(true);
+            if (fireworksTimeoutRef.current) {
+              clearTimeout(fireworksTimeoutRef.current);
+            }
+            fireworksTimeoutRef.current = window.setTimeout(() => setShowFireworks(false), 2500);
+          }
+        } else {
+          setDailyBreak(null);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch daily break:', e);
+        setDailyBreak(null);
+      }
+
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
       // Set empty data on error
@@ -91,6 +115,11 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    return () => {
+      if (fireworksTimeoutRef.current) {
+        clearTimeout(fireworksTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleRefresh = async () => {
@@ -99,10 +128,9 @@ const Dashboard: React.FC = () => {
     await fetchDashboardData();
   };
 
-  const headerDateDisplay = React.useMemo(
-    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
-    []
-  );
+  // Page header title shown inside page section
+  const { t } = useLanguage();
+  const headerTitle = t('nav.dashboard');
 
   if (loading) {
     return (
@@ -114,11 +142,21 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Record-broken confetti overlay */}
+      {showFireworks && (
+        <div className="fixed inset-0 pointer-events-none z-40">
+          <div className="fireworks-container center">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className="firework" style={{ animationDelay: `${i * 0.15}s` }} />
+            ))}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerDateDisplay}</span>
+            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerTitle}</span>
           </h1>
         </div>
         <button
@@ -127,12 +165,12 @@ const Dashboard: React.FC = () => {
           className="btn-primary flex items-center space-x-2"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
+          <span>{t('common.refresh')}</span>
         </button>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Today's Revenue */}
         <div className="card p-6">
           <div className="flex items-center">
@@ -140,7 +178,7 @@ const Dashboard: React.FC = () => {
               <DollarSign className="h-8 w-8 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.todaysRevenue')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
                   const ordersRevenue = Array.isArray(orders)
@@ -160,7 +198,7 @@ const Dashboard: React.FC = () => {
               <ShoppingCart className="h-8 w-8 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Today's Orders</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.todaysOrders')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {todaySales?.completed_orders ?? todaySales?.total_orders ?? (todaySales as any)?.totalOrders ?? 0}
               </p>
@@ -168,14 +206,59 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Average Order Value */}
+        {/* Total Active Orders (moved up) */}
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Clock className="h-8 w-8 text-orange-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.activeOrders')}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {orderStats.pending + orderStats.preparing + orderStats.ready}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Completion Rate (grid) */}
+        <div className="card p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.completionRate')}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {(() => {
+                  let display = '0%';
+                  if (todaySales?.completion_rate) {
+                    const r = String(todaySales.completion_rate).replace('%', '');
+                    display = `${r}%`;
+                  } else if (typeof todaySales?.completed_orders === 'number' && typeof todaySales?.total_orders === 'number' && todaySales.total_orders > 0) {
+                    const r = Math.round((todaySales.completed_orders / todaySales.total_orders) * 100);
+                    display = `${r}%`;
+                  }
+                  return display;
+                })()}
+              </p>
+              {typeof todaySales?.completed_orders === 'number' && typeof todaySales?.total_orders === 'number' && (
+                <p className="text-sm text-gray-600">
+                  {todaySales.completed_orders} of {todaySales.total_orders} completed
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Average Order Value (moved down) */}
         <div className="card p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <TrendingUp className="h-8 w-8 text-purple-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Avg. Order Value</p>
+              <p className="text-sm font-medium text-gray-500">{t('dashboard.avgOrderValue')}</p>
               <p className="text-2xl font-bold text-gray-900">
                 {(() => {
                   const completedRev = (todaySales as any)?.completed_revenue;
@@ -189,42 +272,54 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Total Active Orders */}
-        <div className="card p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Active Orders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orderStats.pending + orderStats.preparing + orderStats.ready}
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Completion Rate (show only if > 0) */}
-      {Number(todaySales?.completion_rate as any) > 0 && (
+      {/* Tea Cup Progress: Today vs Yesterday */}
+      {dailyBreak && (
         <div className="card p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <span className={`text-3xl ${dailyBreak.brokeRecord ? 'animate-wiggle' : ''}`}>🍵</span>
+              <div>
+                <p className="text-sm font-medium text-gray-500">{t('dashboard.teaCupProgress')}</p>
+                <p className="text-base text-gray-700">
+                  Today {dailyBreak.todayCount} / Yesterday {dailyBreak.yesterdayCount}
+                  {dailyBreak.brokeRecord && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">{t('dashboard.record')}</span>
+                  )}
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {todaySales?.completion_rate}%
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${dailyBreak.brokeRecord ? 'text-green-600' : 'text-gray-900'}`}>
+                {dailyBreak.difference >= 0 ? '+' : ''}{dailyBreak.difference}
               </p>
-              <p className="text-sm text-gray-600">
-                {todaySales?.completed_orders} of {todaySales?.total_orders} completed
-              </p>
+              <p className="text-xs text-gray-500">{t('dashboard.vsYesterday')}</p>
+            </div>
+          </div>
+          <div className="mt-2">
+            {(() => {
+              const target = Math.max(1, dailyBreak.yesterdayCount);
+              const pctRaw = (dailyBreak.todayCount / target) * 100;
+              const pct = Math.min(100, Math.max(0, Math.round(pctRaw)));
+              return (
+                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${dailyBreak.brokeRecord ? 'bg-green-500' : 'bg-primary-500'} transition-all duration-700`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              );
+            })()}
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0</span>
+              <span>{dailyBreak.yesterdayCount} {t('dashboard.toBreak')}</span>
             </div>
           </div>
         </div>
       )}
+
+
 
       {/* Order Status Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -273,12 +368,12 @@ const Dashboard: React.FC = () => {
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Recent Orders</h3>
+            <h3 className="text-lg font-medium text-gray-900">{t('dashboard.recentOrders')}</h3>
             <Link
               to="/orders"
               className="text-primary-600 hover:text-primary-500 text-sm font-medium"
             >
-              View all
+              {t('dashboard.viewAll')}
             </Link>
           </div>
         </div>
@@ -286,8 +381,8 @@ const Dashboard: React.FC = () => {
           {recentOrders.length === 0 ? (
             <div className="px-6 py-8 text-center text-gray-500">
               <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-sm font-medium text-gray-900">No orders yet</h3>
-              <p className="text-sm text-gray-500">Orders will appear here when customers place them.</p>
+              <h3 className="text-sm font-medium text-gray-900">{t('dashboard.noOrdersYet')}</h3>
+              <p className="text-sm text-gray-500">{t('orders.noOrders')}</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
@@ -341,8 +436,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <ShoppingCart className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Manage Orders</h3>
-              <p className="text-sm text-gray-500">View and update order status</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.manageOrders')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.manageOrdersDesc')}</p>
             </div>
           </div>
         </Link>
@@ -354,8 +449,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <Calendar className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Menu Management</h3>
-              <p className="text-sm text-gray-500">Update menu items and prices</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.menuManagement')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.menuManagementDesc')}</p>
             </div>
           </div>
         </Link>
@@ -367,8 +462,8 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center">
             <TrendingUp className="h-8 w-8 text-primary-600 group-hover:text-primary-700" />
             <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">Settings</h3>
-              <p className="text-sm text-gray-500">Configure app settings</p>
+              <h3 className="text-lg font-medium text-gray-900">{t('dashboard.settings')}</h3>
+              <p className="text-sm text-gray-500">{t('dashboard.settingsDesc')}</p>
             </div>
           </div>
         </Link>

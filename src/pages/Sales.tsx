@@ -17,8 +17,10 @@ import {
 import { toast } from 'sonner';
 import { formatPrice } from '@/utils/format';
 import SimpleLineChart from '@/components/SimpleLineChart';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Sales: React.FC = () => {
+  const { t } = useLanguage();
   const [salesInsights, setSalesInsights] = useState<SalesInsights | null>(null);
   const [topItems, setTopItems] = useState<TopSellingItemsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +60,7 @@ const Sales: React.FC = () => {
       setTopItems(topItemsResponse);
     } catch (error) {
       console.error('Failed to fetch sales data:', error);
-      toast.error('Failed to fetch sales data. Please check your API connection.');
+      toast.error(t('sales.noData'));
       setSalesInsights(null);
       setTopItems(null);
     } finally {
@@ -86,7 +88,7 @@ const Sales: React.FC = () => {
       setHourlyData(res);
     } catch (e) {
       console.error('Failed to fetch hourly sales:', e);
-      toast.error('Failed to fetch hourly sales.');
+      toast.error(t('sales.noHourlyData'));
       setHourlyData(null);
     } finally {
       setHourlyLoading(false);
@@ -185,7 +187,7 @@ const Sales: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-        <h1 className="text-2xl font-bold text-gray-900">Sales Insights Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('sales.title')}</h1>
         <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <div className="flex items-center space-x-2">
             <Calendar className="h-4 w-4 text-gray-500" />
@@ -194,25 +196,25 @@ const Sales: React.FC = () => {
               value={startDate}
               onChange={handleStartDateChange}
               className="input text-sm"
-              placeholder="Start Date"
+              placeholder={t('sales.startDate')}
               disabled={allTime}
             />
-            <span className="text-gray-500">to</span>
+            <span className="text-gray-500">{t('sales.to')}</span>
             <input
               type="date"
               value={endDate}
               onChange={handleEndDateChange}
               className="input text-sm"
-              placeholder="End Date"
+              placeholder={t('sales.endDate')}
               disabled={allTime}
             />
             <button
               type="button"
               onClick={() => setAllTime((v) => !v)}
               className={`${allTime ? 'btn-primary' : 'btn-secondary'} whitespace-nowrap`}
-              title={allTime ? 'Use Date Range' : 'Show All Time'}
+              title={allTime ? t('sales.useDateRange') : t('sales.showAllTime')}
             >
-              {allTime ? 'Use Date Range' : 'Show All Time'}
+              {allTime ? t('sales.useDateRange') : t('sales.showAllTime')}
             </button>
           </div>
           <div className="flex items-center space-x-2">
@@ -234,7 +236,7 @@ const Sales: React.FC = () => {
             className="btn-secondary flex items-center space-x-2"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('common.refresh')}</span>
           </button>
           {salesInsights && topItems && (
             <button
@@ -242,7 +244,7 @@ const Sales: React.FC = () => {
               className="btn-primary flex items-center space-x-2"
             >
               <Download className="h-4 w-4" />
-              <span>Export</span>
+              <span>{t('sales.export')}</span>
             </button>
           )}
         </div>
@@ -253,24 +255,24 @@ const Sales: React.FC = () => {
           {/* Hourly Sales Curve */}
           <div className="card p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Hourly Sales (Curve)</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{t('sales.hourlyCurve')}</h2>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex rounded-md shadow-sm" role="group">
                   <button
                     type="button"
                     onClick={() => setHourlyMode('day')}
                     className={`px-3 py-1.5 text-sm border ${hourlyMode === 'day' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
-                  >Specific day</button>
+                  >{t('sales.specificDay')}</button>
                   <button
                     type="button"
                     onClick={() => setHourlyMode('range')}
                     className={`px-3 py-1.5 text-sm border-t border-b ${hourlyMode === 'range' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
-                  >Date range</button>
+                  >{t('sales.dateRange')}</button>
                   <button
                     type="button"
                     onClick={() => setHourlyMode('all')}
                     className={`px-3 py-1.5 text-sm border ${hourlyMode === 'all' ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300'}`}
-                  >All-time</button>
+                  >{t('sales.allTime')}</button>
                 </div>
 
                 {hourlyMode === 'day' && (
@@ -295,17 +297,17 @@ const Sales: React.FC = () => {
                 )}
 
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Metric:</span>
+                  <span className="text-sm text-gray-600">{t('sales.metric')}:</span>
                   <select className="input text-sm" value={hourlyMetric} onChange={(e) => setHourlyMetric(e.target.value as any)}>
-                    <option value="revenue">Revenue</option>
-                    <option value="orders_count">Orders</option>
-                    <option value="items_sold">Items Sold</option>
+                    <option value="revenue">{t('sales.revenue')}</option>
+                    <option value="orders_count">{t('sales.orders')}</option>
+                    <option value="items_sold">{t('sales.itemsSold')}</option>
                   </select>
                 </div>
 
                 <button onClick={fetchHourly} className="btn-secondary flex items-center space-x-2">
                   <RefreshCw className={`h-4 w-4 ${hourlyLoading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
+                  <span>{t('common.refresh')}</span>
                 </button>
               </div>
             </div>
@@ -316,7 +318,7 @@ const Sales: React.FC = () => {
               <div className="w-full">
                 <SimpleLineChart
                   height={280}
-                  label={hourlyMetric === 'revenue' ? 'Revenue' : hourlyMetric === 'orders_count' ? 'Orders' : 'Items sold'}
+                  label={hourlyMetric === 'revenue' ? t('sales.revenue') : hourlyMetric === 'orders_count' ? t('sales.orders') : t('sales.itemsSold')}
                   points={hourlyData.data.hourly.map(h => ({ x: h.hour, y: h[hourlyMetric] as unknown as number }))}
                   yFormatter={(v) => hourlyMetric === 'revenue' ? `฿${formatPrice(v)}` : String(v)}
                   xFormatter={(v) => `${v}:00`}
@@ -324,16 +326,18 @@ const Sales: React.FC = () => {
                 />
                 <div className="mt-3 text-xs text-gray-500">
                   {hourlyData.data.period.all_time ? (
-                    <span>All-time hourly {hourlyMetric.replace('_', ' ')}. Totals: {hourlyMetric === 'revenue' ? `฿${formatPrice(hourlyData.data.totals.revenue)}` : hourlyMetric === 'orders_count' ? hourlyData.data.totals.orders_count : hourlyData.data.totals.items_sold}</span>
+                    <span>
+                      {t('sales.allTime')} {t('sales.hourlyCurve').toLowerCase()} — {t('sales.totals')}: {hourlyMetric === 'revenue' ? `฿${formatPrice(hourlyData.data.totals.revenue)}` : hourlyMetric === 'orders_count' ? hourlyData.data.totals.orders_count : hourlyData.data.totals.items_sold}
+                    </span>
                   ) : hourlyMode === 'day' ? (
-                    <span>Day: {hourlyData.data.date}</span>
+                    <span>{t('sales.day')}: {hourlyData.data.date}</span>
                   ) : (
-                    <span>Range: {hourlyData.data.period.start_date} - {hourlyData.data.period.end_date}</span>
+                    <span>{t('sales.rangeLabel')}: {hourlyData.data.period.start_date} - {hourlyData.data.period.end_date}</span>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">No hourly data.</div>
+              <div className="text-center text-gray-500 py-8">{t('sales.noHourlyData')}</div>
             )}
           </div>
           {/* Period Info */}
@@ -341,7 +345,7 @@ const Sales: React.FC = () => {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-center space-x-2">
                 <Calendar className="h-5 w-5 text-blue-600" />
-                <span className="text-blue-800 font-medium">Sales Period: All time</span>
+                <span className="text-blue-800 font-medium">{t('sales.periodAllTime')}</span>
               </div>
             </div>
           ) : (
@@ -350,7 +354,7 @@ const Sales: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-5 w-5 text-blue-600" />
                   <span className="text-blue-800 font-medium">
-                    Sales Period: {new Date(salesInsights.period.start_date).toLocaleDateString('en-US')} - {new Date(salesInsights.period.end_date).toLocaleDateString('en-US')}
+                    {t('sales.periodRange')}: {new Date(salesInsights.period.start_date).toLocaleDateString('en-US')} - {new Date(salesInsights.period.end_date).toLocaleDateString('en-US')}
                   </span>
                 </div>
               </div>
@@ -365,7 +369,7 @@ const Sales: React.FC = () => {
                   <ShoppingCart className="h-8 w-8 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Orders</p>
+                  <p className="text-sm font-medium text-gray-500">{t('sales.totalOrders')}</p>
                   <p className="text-2xl font-bold text-gray-900">{ordersExclCancelled}</p>
                 </div>
               </div>
@@ -377,7 +381,7 @@ const Sales: React.FC = () => {
                   <DollarSign className="h-8 w-8 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+                  <p className="text-sm font-medium text-gray-500">{t('sales.totalRevenue')}</p>
                   <p className="text-2xl font-bold text-gray-900">฿{formatPrice(revenueExclCancelled)}</p>
                 </div>
               </div>
@@ -389,7 +393,7 @@ const Sales: React.FC = () => {
                   <TrendingUp className="h-8 w-8 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Avg Order Value</p>
+                  <p className="text-sm font-medium text-gray-500">{t('sales.avgOrderValue')}</p>
                   <p className="text-2xl font-bold text-gray-900">฿{formatPrice(avgValueExcl)}</p>
                 </div>
               </div>
@@ -401,7 +405,7 @@ const Sales: React.FC = () => {
                   <CheckCircle className="h-8 w-8 text-orange-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Completion Rate</p>
+                  <p className="text-sm font-medium text-gray-500">{t('dashboard.completionRate')}</p>
                   <p className="text-2xl font-bold text-gray-900">{salesInsights.data.summary.completion_rate}%</p>
                 </div>
               </div>
@@ -412,27 +416,27 @@ const Sales: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="card p-4 text-center">
               <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">Completed</p>
+              <p className="text-sm font-medium text-gray-500">{t('status.completed')}</p>
               <p className="text-xl font-bold text-gray-900">{salesInsights.data.summary.completed_orders}</p>
             </div>
             <div className="card p-4 text-center">
               <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">Pending</p>
+              <p className="text-sm font-medium text-gray-500">{t('status.pending')}</p>
               <p className="text-xl font-bold text-gray-900">{salesInsights.data.summary.pending_orders}</p>
             </div>
             <div className="card p-4 text-center">
               <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">Preparing</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.preparing')}</p>
               <p className="text-xl font-bold text-gray-900">{salesInsights.data.summary.preparing_orders}</p>
             </div>
             <div className="card p-4 text-center">
               <ShoppingCart className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">Ready</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.ready')}</p>
               <p className="text-xl font-bold text-gray-900">{salesInsights.data.summary.ready_orders}</p>
             </div>
             <div className="card p-4 text-center">
               <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-500">Cancelled</p>
+              <p className="text-sm font-medium text-gray-500">{t('status.cancelled')}</p>
               <p className="text-xl font-bold text-gray-900">{salesInsights.data.summary.cancelled_orders}</p>
             </div>
           </div>
@@ -440,8 +444,8 @@ const Sales: React.FC = () => {
           {/* Top Selling Items */}
           <div className="card p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Top {topItemsLimit} Selling Items</h2>
-              <span className="text-sm text-gray-500">{topItems.count} items found</span>
+              <h2 className="text-lg font-semibold text-gray-900">{t('sales.topItems')}</h2>
+              <span className="text-sm text-gray-500">{topItems.count} {t('sales.items')} {t('sales.found')}</span>
             </div>
 
             {topItems.data && topItems.data.length > 0 ? (
@@ -476,10 +480,10 @@ const Sales: React.FC = () => {
                         <p className="text-sm text-gray-500">{item.category}</p>
                         <div className="flex items-center space-x-4 mt-1">
                           <span className="text-xs text-gray-500">
-                            {item.total_quantity_sold} sold in {item.number_of_orders} orders
+                            {item.total_quantity_sold} {t('sales.itemsSold')} • {item.number_of_orders} {t('sales.orders')}
                           </span>
                           <span className="text-xs text-blue-600 font-medium">
-                            {item.percentage_of_total_sales.toFixed(1)}% of sales
+                            {item.percentage_of_total_sales.toFixed(1)}%
                           </span>
                         </div>
                       </div>
@@ -488,9 +492,9 @@ const Sales: React.FC = () => {
                       <p className="text-sm font-medium text-gray-900">
                         ฿{formatPrice(item.total_revenue)}
                       </p>
-                      <p className="text-xs text-gray-500">total revenue</p>
+                      <p className="text-xs text-gray-500">{t('sales.totalRevenueLower')}</p>
                       <p className="text-xs text-gray-500">
-                        ฿{formatPrice(item.average_price)} avg price
+                        ฿{formatPrice(item.average_price)} {t('sales.avgPrice')}
                       </p>
                     </div>
                   </div>
@@ -499,8 +503,8 @@ const Sales: React.FC = () => {
             ) : (
               <div className="text-center py-8">
                 <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No sales data</h3>
-                <p className="mt-1 text-sm text-gray-500">No items were sold.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">{t('sales.noData')}</h3>
+                <p className="mt-1 text-sm text-gray-500">{t('sales.noItemsSold')}</p>
               </div>
             )}
           </div>
@@ -508,17 +512,17 @@ const Sales: React.FC = () => {
           {/* Daily Breakdown */}
           {salesInsights.data.daily_breakdown && salesInsights.data.daily_breakdown.length > 0 && (
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily Breakdown</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sales.dailyBreakdown')}</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Order</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('sales.date')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('sales.orders')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('sales.revenueCol')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('sales.avgOrderValue')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status.completed')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('common.status')}</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -574,24 +578,24 @@ const Sales: React.FC = () => {
           {/* Additional Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Revenue Insights</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sales.revenueInsights')}</h2>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Completed Revenue</span>
+                  <span className="text-sm text-gray-600">{t('sales.completedRevenue')}</span>
                   <span className="text-sm font-medium text-gray-900">
                     ฿{formatPrice(salesInsights.data.summary.completed_revenue)}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Best selling category</span>
+                  <span className="text-sm text-gray-600">{t('sales.bestCategory')}</span>
                   <span className="text-sm font-medium text-gray-900">
                     {topItems.data.length > 0 ? topItems.data[0].category : 'N/A'}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Highest revenue item</span>
+                  <span className="text-sm text-gray-600">{t('sales.highestRevenueItem')}</span>
                   <span className="text-sm font-medium text-gray-900">
                     {topItems.data.length > 0
                       ? topItems.data.reduce((max, item) => item.total_revenue > max.total_revenue ? item : max, topItems.data[0]).menu_name
@@ -601,7 +605,7 @@ const Sales: React.FC = () => {
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Top item share</span>
+                  <span className="text-sm text-gray-600">{t('sales.topItemShare')}</span>
                   <span className="text-sm font-medium text-gray-900">
                     {topItems.data.length > 0 ? `${topItems.data[0].percentage_of_total_sales.toFixed(1)}%` : 'N/A'}
                   </span>
@@ -610,17 +614,17 @@ const Sales: React.FC = () => {
             </div>
 
             <div className="card p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Performance</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('sales.orderPerformance')}</h2>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Completion Rate</span>
+                  <span className="text-sm text-gray-600">{t('dashboard.completionRate')}</span>
                   <span className="text-sm font-medium text-green-600">
                     {salesInsights.data.summary.completion_rate}%
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Cancelled Rate</span>
+                  <span className="text-sm text-gray-600">{t('sales.cancelledRate')}</span>
                   <span className="text-sm font-medium text-red-600">
                     {salesInsights.data.summary.total_orders > 0
                       ? ((salesInsights.data.summary.cancelled_orders / salesInsights.data.summary.total_orders) * 100).toFixed(1)
@@ -635,11 +639,11 @@ const Sales: React.FC = () => {
                     style={{ width: `${parseFloat(salesInsights.data.summary.completion_rate)}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-500 text-center">Order completion progress</p>
+                <p className="text-xs text-gray-500 text-center">{t('sales.orderCompletionProgress')}</p>
 
                 <div className="mt-4 text-center">
                   <p className="text-2xl font-bold text-gray-900">{salesInsights.data.summary.completed_orders}</p>
-                  <p className="text-sm text-gray-500">Orders completed successfully</p>
+                  <p className="text-sm text-gray-500">{t('sales.ordersCompleted')}</p>
                 </div>
               </div>
             </div>
@@ -648,16 +652,16 @@ const Sales: React.FC = () => {
       ) : (
         <div className="text-center py-12">
           <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No sales data available</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">{t('sales.noData')}</h3>
           <p className="mt-1 text-sm text-gray-500">
-            No sales data found for the selected period. Try adjusting your date range.
+            {t('sales.noDataHint')}
           </p>
           <div className="mt-4">
             <button
               onClick={handleRefresh}
               className="btn-primary"
             >
-              Retry Loading Data
+              {t('sales.retry')}
             </button>
           </div>
         </div>

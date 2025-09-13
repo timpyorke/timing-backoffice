@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { safeStorage } from '@/utils/safeStorage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import TokenStatus from '@/components/TokenStatus';
 
 import {
@@ -16,6 +17,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
   // Notifications removed
 
   // Load existing settings from localStorage
@@ -129,7 +131,7 @@ const Settings: React.FC = () => {
       {/* Header */}
       <div className="flex items-center space-x-3">
         <SettingsIcon className="h-8 w-8 text-gray-600" />
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('settings.title')}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -137,34 +139,34 @@ const Settings: React.FC = () => {
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <User className="h-5 w-5 mr-2" />
-            User Profile
+            {t('settings.userProfile')}
           </h2>
 
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name
+                {t('common.name')}
               </label>
               <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded-md">
-                {user?.name || 'Not provided'}
+                {user?.name || t('common.na')}
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
+                {t('common.email')}
               </label>
               <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded-md">
-                {user?.email}
+                {user?.email || t('common.na')}
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Role
+                {t('settings.role')}
               </label>
               <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded-md capitalize">
-                {user?.role || 'Staff'}
+                {user?.role || t('common.na')}
               </div>
             </div>
             {/* Token Status */}
@@ -178,13 +180,31 @@ const Settings: React.FC = () => {
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <SettingsIcon className="h-5 w-5 mr-2" />
-            App Settings
+            {t('settings.appSettings')}
           </h2>
 
           <div className="space-y-4">
+            {/* Language */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Auto Refresh Interval (seconds)
+                {t('settings.language')}
+              </label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="input max-w-xs pr-10"
+              >
+                <option value="en">English</option>
+                <option value="th">ไทย (Thai)</option>
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                Applies immediately and is saved for next visits.
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('settings.autoRefreshInterval')}
               </label>
               <select
                 value={settings.autoRefreshInterval.toString()}
@@ -196,7 +216,7 @@ const Settings: React.FC = () => {
                     autoRefreshInterval: newValue
                   }));
                 }}
-                className="input"
+                className="input max-w-xs pr-10"
               >
                 <option value={15}>15 seconds</option>
                 <option value={30}>30 seconds</option>
@@ -205,7 +225,7 @@ const Settings: React.FC = () => {
                 <option value={0}>Disabled</option>
               </select>
               <div className="text-xs text-gray-500 mt-1">
-                Current value: {settings.autoRefreshInterval}
+                {t('settings.currentValue')}: {settings.autoRefreshInterval}
               </div>
             </div>
 
@@ -217,13 +237,13 @@ const Settings: React.FC = () => {
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Store className="h-5 w-5 mr-2" />
-            Shop
+            {t('settings.shop')}
           </h2>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  App client status is
+                  {t('settings.clientStatus')}
                 </label>
 
               </div>
@@ -251,7 +271,7 @@ const Settings: React.FC = () => {
                   title="Refresh Remote Config"
                 >
                   <RefreshCw className={`h-4 w-4 ${rcLoading ? 'animate-spin' : ''}`} />
-                  <span>{rcLoading ? 'Refreshing...' : 'Refresh'}</span>
+                  <span>{rcLoading ? t('settings.refreshing') : t('settings.refresh')}</span>
                 </button>
               </div>
             </div>
@@ -261,27 +281,27 @@ const Settings: React.FC = () => {
         {/* System Information */}
         <div className="card p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            System Information
+            {t('settings.systemInformation')}
           </h2>
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">App Version:</span>
+              <span className="text-gray-600">{t('settings.appVersion')}:</span>
               <span className="text-gray-900">1.0.0</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Last Updated:</span>
+              <span className="text-gray-600">{t('settings.lastUpdated')}:</span>
               <span className="text-gray-900">{new Date().toLocaleDateString()}</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Browser:</span>
+              <span className="text-gray-600">{t('settings.browser')}:</span>
               <span className="text-gray-900">{navigator.userAgent.split(' ')[0]}</span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-gray-600">Platform:</span>
+              <span className="text-gray-600">{t('settings.platform')}:</span>
               <span className="text-gray-900">{navigator.platform}</span>
             </div>
           </div>
@@ -295,7 +315,7 @@ const Settings: React.FC = () => {
           className="btn-primary flex items-center space-x-2"
         >
           <Save className="h-4 w-4" />
-          <span>Save Settings</span>
+          <span>{t('settings.saveSettings')}</span>
         </button>
       </div>
 

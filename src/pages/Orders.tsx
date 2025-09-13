@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { OrderStatus } from '@/types';
 import { useOrders } from '@/hooks/useOrders';
 import { safeStorage } from '@/utils/safeStorage';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   RefreshCw,
   Clock,
@@ -19,6 +20,7 @@ import { formatPrice } from '@/utils/format';
 import OrderStatusBadge from '@/components/OrderStatusBadge';
 
 const Orders: React.FC = () => {
+  const { t } = useLanguage();
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<string>(''); // YYYY-MM-DD or empty for all
   const [refreshing, setRefreshing] = useState(false);
@@ -40,19 +42,8 @@ const Orders: React.FC = () => {
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(getAutoRefreshInterval());
 
   // Display date in the header (selected or today)
-  const todayDisplay = useMemo(
-    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
-    []
-  );
-  const headerDateDisplay = useMemo(() => {
-    if (dateFilter) {
-      const d = new Date(dateFilter);
-      if (!isNaN(d.getTime())) {
-        return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
-      }
-    }
-    return todayDisplay;
-  }, [dateFilter, todayDisplay]);
+  // Removed date header display; top bar shows current date
+  // Date display removed from header; keep local date for potential future use if needed
 
 
   // Use orders hook
@@ -148,9 +139,9 @@ const Orders: React.FC = () => {
 
   const getStatusAction = (status: OrderStatus): string => {
     switch (status) {
-      case 'pending': return 'Start';
-      case 'preparing': return 'Ready';
-      case 'ready': return 'Complete';
+      case 'pending': return t('action.startPreparing');
+      case 'preparing': return t('action.markReady');
+      case 'ready': return t('action.completeOrder');
       default: return '';
     }
   };
@@ -166,7 +157,7 @@ const Orders: React.FC = () => {
 
   const canCancel = (status: OrderStatus) => status !== 'completed' && status !== 'cancelled';
   const handleCancel = async (orderId: string) => {
-    if (!confirm('Cancel this order? This cannot be undone.')) return;
+    if (!confirm(t('orders.confirmCancel'))) return;
     await updateOrderStatus(orderId, 'cancelled');
   };
 
@@ -202,7 +193,7 @@ const Orders: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-gray-900">{headerDateDisplay}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('nav.orders')}</h1>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -212,15 +203,15 @@ const Orders: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as OrderStatus | 'all')}
               className="input py-1"
             >
-              <option value="all">All Orders</option>
-              <option value="pending">New Orders</option>
-              <option value="preparing">Preparing</option>
-              <option value="ready">Ready</option>
-              <option value="completed">Completed</option>
+              <option value="all">{t('orders.all')}</option>
+              <option value="pending">{t('orders.new')}</option>
+              <option value="preparing">{t('orders.preparing')}</option>
+              <option value="ready">{t('orders.ready')}</option>
+              <option value="completed">{t('orders.completed')}</option>
             </select>
           </div>
           <div className="flex items-center space-x-2">
-            <label htmlFor="order-date" className="text-sm text-gray-600">Date:</label>
+            <label htmlFor="order-date" className="text-sm text-gray-600">{t('sales.date')}:</label>
             <input
               id="order-date"
               type="date"
@@ -232,15 +223,15 @@ const Orders: React.FC = () => {
               <button
                 className="btn-secondary px-2 py-1 text-sm"
                 onClick={() => setDateFilter('')}
-                title="Clear date filter"
+                title={t('common.clear')}
               >
-                Clear
+                {t('common.clear')}
               </button>
             )}
           </div>
           <Link to="/orders/new" className="btn-primary flex items-center space-x-2 whitespace-nowrap">
             <Plus className="h-4 w-4" />
-            <span>New Order</span>
+            <span>{t('orders.new')}</span>
           </Link>
           <button
             onClick={handleRefresh}
@@ -248,7 +239,7 @@ const Orders: React.FC = () => {
             className="btn-primary flex items-center space-x-2"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('orders.refresh')}</span>
           </button>
         </div>
       </div>
@@ -261,7 +252,7 @@ const Orders: React.FC = () => {
               <AlertCircle className="h-8 w-8 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">New Orders</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.new')}</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.received.length}</p>
             </div>
           </div>
@@ -272,7 +263,7 @@ const Orders: React.FC = () => {
               <Clock className="h-8 w-8 text-yellow-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Preparing</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.preparing')}</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.preparing.length}</p>
             </div>
           </div>
@@ -283,7 +274,7 @@ const Orders: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Ready</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.ready')}</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.ready.length}</p>
             </div>
           </div>
@@ -294,7 +285,7 @@ const Orders: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-gray-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Completed</p>
+              <p className="text-sm font-medium text-gray-500">{t('orders.completed')}</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.completed.length}</p>
             </div>
           </div>
@@ -305,7 +296,7 @@ const Orders: React.FC = () => {
               <XCircle className="h-8 w-8 text-red-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Cancelled</p>
+              <p className="text-sm font-medium text-gray-500">{t('status.cancelled')}</p>
               <p className="text-2xl font-bold text-gray-900">{ordersByStatus.cancelled.length}</p>
             </div>
           </div>
@@ -319,7 +310,7 @@ const Orders: React.FC = () => {
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Order #{String(order.id).slice(-6)}
+                  {t('orderDetails.title')} #{String(order.id).slice(-6)}
                 </h3>
                 <p className="text-sm text-gray-600">{order.customer_info.name}</p>
                 {order.customer_info.phone && (
@@ -371,7 +362,7 @@ const Orders: React.FC = () => {
                 );
               })()}
               <div className="text-sm text-gray-500 mt-1">
-                Order at: {order.created_at ? (() => {
+                {t('orders.orderedAt')}: {order.created_at ? (() => {
                   const date = typeof order.created_at === 'string' ? new Date(order.created_at) : order.created_at;
                   return isNaN(date.getTime())
                     ? 'N/A'
@@ -395,7 +386,7 @@ const Orders: React.FC = () => {
                       className="btn-secondary w-full flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
                     >
                       <Eye className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">View</span>
+                      <span className="truncate">{t('orders.viewDetails')}</span>
                     </Link>
                   );
                 }
@@ -408,7 +399,7 @@ const Orders: React.FC = () => {
                         className="btn-secondary w-full flex items-center justify-center space-x-1 whitespace-nowrap text-sm tap-target"
                       >
                         <Eye className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">View</span>
+                        <span className="truncate">{t('orders.viewDetails')}</span>
                       </Link>
                     </div>
                     <div className="mt-2 flex space-x-2 min-h-[2.5rem]">
@@ -419,7 +410,7 @@ const Orders: React.FC = () => {
                           className={`flex-1 px-2 py-2 rounded-md font-medium transition-colors text-sm whitespace-nowrap tap-target ${isUpdating ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 text-white'}`}
                           title="Cancel order"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       )}
                       {nextStatus && (
@@ -434,7 +425,7 @@ const Orders: React.FC = () => {
                           {isUpdating ? (
                             <span className="flex items-center justify-center">
                               <RefreshCw className="h-3 w-3 animate-spin mr-1" />
-                              <span className="truncate">Updating...</span>
+                              <span className="truncate">{t('action.updating')}</span>
                             </span>
                           ) : (
                             <span className="truncate">{getStatusAction(order.status)}</span>
