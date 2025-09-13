@@ -238,3 +238,14 @@ export interface TopSellingItemsResponse {
   };
   count: number;
 }
+
+// Daily break comparison between today and yesterday
+export interface DailyBreakResponse {
+  success: boolean;
+  data: {
+    todayCount: number;
+    yesterdayCount: number;
+    difference: number;
+    brokeRecord: boolean;
+  };
+}

@@ -68,4 +68,77 @@
   .animate-slide-in-right {
     animation: slide-in-right 0.3s ease-out;
   }
+
+  /* Tea-cup wiggle animation */
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(6deg); }
+    75% { transform: rotate(-6deg); }
+  }
+  .animate-wiggle {
+    animation: wiggle 0.8s ease-in-out 3;
+    display: inline-block;
+  }
+
+
+  /* Fireworks overlay */
+  .fireworks-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .firework {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+    /* Spark points around a circle using box-shadow */
+    box-shadow:
+      0 -12px 0 0 #f87171,
+      8px -8px 0 0 #fbbf24,
+      12px 0 0 0 #34d399,
+      8px 8px 0 0 #60a5fa,
+      0 12px 0 0 #a78bfa,
+      -8px 8px 0 0 #f472b6,
+      -12px 0 0 0 #fb7185,
+      -8px -8px 0 0 #22c55e;
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 1;
+    animation: firework-burst 1.4s ease-out forwards;
+  }
+
+  .firework::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    box-shadow:
+      0 -7px 0 0 #fde047,
+      5px -5px 0 0 #fca5a5,
+      7px 0 0 0 #86efac,
+      5px 5px 0 0 #93c5fd,
+      0 7px 0 0 #c4b5fd,
+      -5px 5px 0 0 #f0abfc,
+      -7px 0 0 0 #fb7185,
+      -5px -5px 0 0 #34d399;
+  }
+
+  @keyframes firework-burst {
+    0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+    70%  { opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+  }
+
+  /* Positions and delays for a few bursts */
+  .firework-1 { top: 18%; left: 22%; animation-delay: 0s; }
+  .firework-2 { top: 28%; left: 70%; animation-delay: 0.15s; }
+  .firework-3 { top: 42%; left: 38%; animation-delay: 0.1s; }
+  .firework-4 { top: 55%; left: 82%; animation-delay: 0.25s; }
+  .firework-5 { top: 66%; left: 18%; animation-delay: 0.2s; }
+  .firework-6 { top: 74%; left: 48%; animation-delay: 0.05s; }
+  .firework-7 { top: 20%; left: 50%; animation-delay: 0.12s; }
+  .firework-8 { top: 78%; left: 75%; animation-delay: 0.18s; }
+  .firework-9 { top: 35%; left: 12%; animation-delay: 0.3s; }
 }

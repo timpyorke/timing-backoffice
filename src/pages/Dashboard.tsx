@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useOrders } from '@/hooks/useOrders';
 import { apiService } from '@/services/api';
-import { DailySales, SalesInsights } from '@/types';
+import { DailySales, SalesInsights, DailyBreakResponse } from '@/types';
 import {
   ShoppingCart,
   Clock,
@@ -22,6 +22,9 @@ const Dashboard: React.FC = () => {
   const [todaySales, setTodaySales] = useState<DailySales | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dailyBreak, setDailyBreak] = useState<DailyBreakResponse['data'] | null>(null);
+  const [showFireworks, setShowFireworks] = useState(false);
+  const fireworksTimeoutRef = useRef<number | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const { orders } = useOrders({ date: todayStr });
@@ -77,6 +80,26 @@ const Dashboard: React.FC = () => {
         console.warn('Failed to fetch today sales:', todayError);
         setTodaySales(null);
       }
+
+      // Fetch daily break comparison (today vs yesterday)
+      try {
+        const breakResponse = await apiService.getDailyBreak();
+        if (breakResponse && breakResponse.success && breakResponse.data) {
+          setDailyBreak(breakResponse.data);
+          if (breakResponse.data.brokeRecord) {
+            setShowFireworks(true);
+            if (fireworksTimeoutRef.current) {
+              clearTimeout(fireworksTimeoutRef.current);
+            }
+            fireworksTimeoutRef.current = window.setTimeout(() => setShowFireworks(false), 2500);
+          }
+        } else {
+          setDailyBreak(null);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch daily break:', e);
+        setDailyBreak(null);
+      }
       
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -91,6 +114,11 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    return () => {
+      if (fireworksTimeoutRef.current) {
+        clearTimeout(fireworksTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleRefresh = async () => {
@@ -114,6 +142,16 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Record-broken confetti overlay */}
+      {showFireworks && (
+        <div className="fixed inset-0 pointer-events-none z-40">
+          <div className="fireworks-container">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <span key={i} className={`firework firework-${i + 1}`} />
+            ))}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
@@ -205,6 +243,51 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Tea Cup Progress: Today vs Yesterday */}
+      {dailyBreak && (
+        <div className="card p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <span className={`text-3xl ${dailyBreak.brokeRecord ? 'animate-wiggle' : ''}`}>🍵</span>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Tea Cup Progress</p>
+                <p className="text-base text-gray-700">
+                  Today {dailyBreak.todayCount} / Yesterday {dailyBreak.yesterdayCount}
+                  {dailyBreak.brokeRecord && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Record!</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`text-2xl font-bold ${dailyBreak.brokeRecord ? 'text-green-600' : 'text-gray-900'}`}>
+                {dailyBreak.difference >= 0 ? '+' : ''}{dailyBreak.difference}
+              </p>
+              <p className="text-xs text-gray-500">vs yesterday</p>
+            </div>
+          </div>
+          <div className="mt-2">
+            {(() => {
+              const target = Math.max(1, dailyBreak.yesterdayCount);
+              const pctRaw = (dailyBreak.todayCount / target) * 100;
+              const pct = Math.min(100, Math.max(0, Math.round(pctRaw)));
+              return (
+                <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${dailyBreak.brokeRecord ? 'bg-green-500' : 'bg-primary-500'} transition-all duration-700`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              );
+            })()}
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>0</span>
+              <span>{dailyBreak.yesterdayCount} to break</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Completion Rate */}
       {todaySales?.completion_rate && (
