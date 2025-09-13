@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { safeStorage } from '@/utils/safeStorage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import TokenStatus from '@/components/TokenStatus';
 
 import {
@@ -16,6 +17,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
+  const { language, setLanguage } = useLanguage();
   // Notifications removed
 
   // Load existing settings from localStorage
@@ -182,6 +184,24 @@ const Settings: React.FC = () => {
           </h2>
 
           <div className="space-y-4">
+            {/* Language */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Language
+              </label>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as any)}
+                className="input max-w-xs pr-10"
+              >
+                <option value="en">English</option>
+                <option value="th">ไทย (Thai)</option>
+              </select>
+              <div className="text-xs text-gray-500 mt-1">
+                Applies immediately and is saved for next visits.
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Auto Refresh Interval (seconds)
@@ -196,7 +216,7 @@ const Settings: React.FC = () => {
                     autoRefreshInterval: newValue
                   }));
                 }}
-                className="input"
+                className="input max-w-xs pr-10"
               >
                 <option value={15}>15 seconds</option>
                 <option value={30}>30 seconds</option>

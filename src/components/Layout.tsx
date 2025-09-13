@@ -10,10 +10,8 @@ import {
   LogOut,
   User,
   X,
-  Languages,
   BarChart3,
   Home,
-  Boxes,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -29,16 +27,16 @@ const Layout: React.FC = () => {
     return true; // default to extended
   });
   const { user, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
     { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
-    { name: 'Inventory', href: '/inventory', icon: Boxes },
     { name: 'Sales', href: '/sales', icon: BarChart3 },
     { name: t('nav.settings'), href: '/settings', icon: Settings },
+    { name: 'Logout', href: '/logout', icon: LogOut },
   ];
 
   const handleLogout = async () => {
@@ -64,8 +62,6 @@ const Layout: React.FC = () => {
         return 'Menu Management';
       case '/sales':
         return 'Sales Analytics';
-      case '/inventory':
-        return 'Inventory';
       case '/settings':
         return 'Settings';
       default:
@@ -102,20 +98,34 @@ const Layout: React.FC = () => {
               <span className="ml-2 text-xl font-bold text-gray-900">Timing</span>
             </Link>
             <nav className="mt-5 px-2 space-y-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${isCurrentPath(item.href)
-                    ? 'bg-primary-100 text-primary-900'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <item.icon className="mr-4 h-6 w-6" />
-                  {item.name}
-                </Link>
-              ))}
+              {navigation.map((item) => {
+                const isLogout = item.href === '/logout';
+                const handleClick: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+                  if (isLogout) {
+                    e.preventDefault();
+                    if (window.confirm('Log out of the app?')) {
+                      handleLogout();
+                      setSidebarOpen(false);
+                    }
+                    return;
+                  }
+                  setSidebarOpen(false);
+                };
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`group flex items-center px-2 py-2 text-base font-medium rounded-md ${isCurrentPath(item.href)
+                      ? 'bg-primary-100 text-primary-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    onClick={handleClick}
+                  >
+                    <item.icon className="mr-4 h-6 w-6" />
+                    {item.name}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         </div>
@@ -142,19 +152,31 @@ const Layout: React.FC = () => {
                 </button>
               </div>
               <nav className="mt-5 flex-1 px-2 space-y-1">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className={`group flex items-center ${sidebarExpanded ? 'justify-start' : 'justify-center'} px-2 py-2 text-sm font-medium rounded-md tap-target ${isCurrentPath(item.href)
-                      ? 'bg-primary-600 text-primary-50'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                  >
-                    <item.icon className={`h-5 w-5 ${sidebarExpanded ? 'mr-3' : 'mr-0'}`} />
-                    <span className={`${sidebarExpanded ? 'inline' : 'hidden'}`}>{item.name}</span>
-                  </Link>
-                ))}
+                {navigation.map((item) => {
+                  const isLogout = item.href === '/logout';
+                  const handleClick: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+                    if (isLogout) {
+                      e.preventDefault();
+                      if (window.confirm('Log out of the app?')) {
+                        handleLogout();
+                      }
+                    }
+                  };
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onClick={handleClick}
+                      className={`group flex items-center ${sidebarExpanded ? 'justify-start' : 'justify-center'} px-2 py-2 text-sm font-medium rounded-md tap-target ${isCurrentPath(item.href)
+                        ? 'bg-primary-600 text-primary-50'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                    >
+                      <item.icon className={`h-5 w-5 ${sidebarExpanded ? 'mr-3' : 'mr-0'}`} />
+                      <span className={`${sidebarExpanded ? 'inline' : 'hidden'}`}>{item.name}</span>
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
           </div>
@@ -187,34 +209,17 @@ const Layout: React.FC = () => {
             <div className="ml-4 flex items-center md:ml-6 space-x-4">
 
 
-              {/* Language toggle */}
-              <button
-                onClick={() => setLanguage(language === 'th' ? 'en' : 'th')}
-                className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 flex items-center space-x-1 tap-target"
-                title="Switch language"
-              >
-                <Languages className="h-5 w-5" />
-                <span className="text-sm font-medium">{language === 'th' ? 'TH' : 'EN'}</span>
-              </button>
+              {/* Language toggle moved to Settings */}
 
               {/* Notifications removed */}
 
-              {/* User menu */}
+              {/* User info (logout moved to sidebar) */}
               <div className="relative">
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-5 w-5 text-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">
-                      {user?.name || user?.email}
-                    </span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 tap-target"
-                    title="Logout"
-                  >
-                    <LogOut className="h-5 w-5" />
-                  </button>
+                  <User className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {user?.name || user?.email}
+                  </span>
                 </div>
               </div>
             </div>
