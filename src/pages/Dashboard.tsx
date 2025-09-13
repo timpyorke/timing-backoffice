@@ -127,10 +127,8 @@ const Dashboard: React.FC = () => {
     await fetchDashboardData();
   };
 
-  const headerDateDisplay = React.useMemo(
-    () => new Date().toLocaleDateString(undefined, { dateStyle: 'medium' }),
-    []
-  );
+  // Page header title shown inside page section
+  const headerTitle = 'Dashboard';
 
   if (loading) {
     return (
@@ -156,7 +154,7 @@ const Dashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-gray-900">
-            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerDateDisplay}</span>
+            <span className="inline-block bg-primary-100 text-primary-800 px-3 py-1 rounded-lg">{headerTitle}</span>
           </h1>
         </div>
         <button
