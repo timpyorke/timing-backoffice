@@ -22,7 +22,8 @@ import {
   Calendar,
   DollarSign,
   User,
-  Mail
+  Mail,
+  Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatPrice } from '@/utils/format';
@@ -115,7 +116,11 @@ const OrderDetails: React.FC = () => {
         ...(order.estimatedTime && { estimatedTime: order.estimatedTime }),
         ...(responseData?.customer_id && { customer_id: responseData.customer_id }),
         ...(responseData?.original_total && { original_total: responseData.original_total }),
-        ...(responseData?.discount_amount && { discount_amount: responseData.discount_amount })
+        ...(responseData?.discount_amount && { discount_amount: responseData.discount_amount }),
+        ...(order.payment_method && { payment_method: order.payment_method }),
+        ...(responseData?.payment_method && { payment_method: responseData.payment_method }),
+        ...(order.attachment_url && { attachment_url: order.attachment_url }),
+        ...(responseData?.attachment_url && { attachment_url: responseData.attachment_url })
       };
 
       // Set the new order state
@@ -133,6 +138,27 @@ const OrderDetails: React.FC = () => {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const getPaymentMethodLabel = (method?: string | null): string => {
+    if (!method) return 'N/A';
+    const formatted = method
+      .toString()
+      .replace(/[_\-]+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+    return formatted || 'N/A';
+  };
+
+  const shouldDisplayPromptPayQr = (): boolean => {
+    const method = order?.payment_method?.toLowerCase().trim();
+    if (!method) {
+      return !order?.attachment_url;
+    }
+    return (method.includes('prompt') || method.includes('qr')) && !order?.attachment_url;
   };
 
   const handlePrint = () => {
@@ -168,8 +194,16 @@ const OrderDetails: React.FC = () => {
           ${order.customer_info?.phone ? `<p><strong>Phone:</strong> ${order.customer_info.phone}</p>` : ''}
           ${order.customer_info?.email ? `<p><strong>Email:</strong> ${order.customer_info.email}</p>` : ''}
           <p><strong>Status:</strong> ${order.status.toUpperCase()}</p>
+          <p><strong>Payment Method:</strong> ${getPaymentMethodLabel(order.payment_method)}</p>
           <p><strong>Date:</strong> ${order.created_at ? (isNaN(new Date(order.created_at).getTime()) ? 'N/A' : new Date(order.created_at).toLocaleString()) : 'N/A'}</p>
         </div>
+
+        ${order.attachment_url ? `
+          <div class="order-info">
+            <p><strong>Payment Attachment:</strong></p>
+            <img src="${order.attachment_url}" alt="Payment attachment" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 8px; margin-top: 8px;" />
+          </div>
+        ` : ''}
         
         <div class="items">
           <h4>Items:</h4>
@@ -343,6 +377,9 @@ const OrderDetails: React.FC = () => {
   if (!order) {
     return null;
   }
+
+  const paymentMethodLabel = getPaymentMethodLabel(order.payment_method);
+  const showPromptPayQr = shouldDisplayPromptPayQr();
 
   return (
     <div className="space-y-6 pb-24">
@@ -600,59 +637,86 @@ const OrderDetails: React.FC = () => {
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
-                  <p className="text-sm text-gray-900">Payment</p>
-                  <p className="text-sm text-gray-500">Cash on Pickup</p>
+                  <p className="text-sm text-gray-900">Payment Method</p>
+                  <p className="text-sm text-gray-500">{paymentMethodLabel}</p>
                 </div>
               </div>
 
-              {/* Thai QR Payment styled block */}
-              <div className="mt-2 flex flex-col items-center">
-                <div className="h-px w-full max-w-sm bg-gray-200 mb-3"></div>
-                <p className="text-base md:text-lg font-bold text-gray-900 text-center mb-3">Payment QR</p>
-                <div className="border rounded-lg overflow-hidden w-full max-w-sm bg-white mx-auto">
-                  {/* Header brand bar */}
-                  <div className="bg-[#103D5B] text-white px-4 py-3 flex items-center justify-center gap-2">
-                    {/* Simple placeholder logo */}
-                    <div className="h-6 w-6 rounded bg-white/10 flex items-center justify-center text-white text-xs font-bold">QR</div>
-                    <div className="text-sm font-semibold tracking-wide">THAI QR PAYMENT</div>
-                  </div>
-                  {/* PromptPay label */}
-                  <div className="px-6 pt-5 flex justify-center">
-                    <div className="inline-flex items-center border-2 border-[#1B4E8F] px-4 py-1 rounded">
-                      <span className="text-[#1B4E8F] text-sm font-semibold mr-2">Prompt</span>
-                      <span className="bg-[#1B4E8F] text-white text-sm font-semibold px-1">Pay</span>
-                      <span className="ml-3 text-[#1B4E8F] text-xs">พร้อมเพย์</span>
-                    </div>
-                  </div>
-                  {/* QR with center logo overlay */}
-                  <div className="px-6 py-5">
-                    <div className="relative mx-auto w-full max-w-[260px] aspect-square bg-white">
+              {order.attachment_url && (
+                <div className="flex items-start">
+                  <ImageIcon className="h-4 w-4 text-gray-400 mr-3 mt-1" />
+                  <div>
+                    <p className="text-sm text-gray-900">Payment Attachment</p>
+                    <a
+                      href={order.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block max-w-xs rounded-md border border-gray-200 overflow-hidden"
+                    >
                       <img
-                        src={(() => {
-                          const totalAmount = getDisplayTotal();
-                          const amountParam = Number.isInteger(totalAmount)
-                            ? String(totalAmount)
-                            : String(Number(totalAmount.toFixed(2)));
-                          return `https://rub-tung.vercel.app/api/0990995156?amont=${encodeURIComponent(amountParam)}`;
-                        })()}
-                        alt="Thai QR Payment"
-                        className="absolute inset-0 w-full h-full object-contain select-none"
-                        onError={(e) => {
-                          console.error('Failed to load payment image');
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          toast.error('Unable to load payment image');
+                        src={order.attachment_url}
+                        alt="Payment attachment"
+                        className="w-full h-auto object-cover"
+                        loading="lazy"
+                        onError={(event) => {
+                          (event.target as HTMLImageElement).style.display = 'none';
+                          toast.error('Unable to load payment attachment');
                         }}
                       />
-                      {/* Center logo overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="h-14 w-14 rounded-md bg-white border-2 border-[#103D5B] flex items-center justify-center shadow-sm">
-                          <div className="h-8 w-8 rounded-md bg-[#19B3A6] flex items-center justify-center text-white text-xs font-bold">PP</div>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {showPromptPayQr && (
+                <div className="mt-2 flex flex-col items-center">
+                  <div className="h-px w-full max-w-sm bg-gray-200 mb-3"></div>
+                  <p className="text-base md:text-lg font-bold text-gray-900 text-center mb-3">Payment QR</p>
+                  <div className="border rounded-lg overflow-hidden w-full max-w-sm bg-white mx-auto">
+                    {/* Header brand bar */}
+                    <div className="bg-[#103D5B] text-white px-4 py-3 flex items-center justify-center gap-2">
+                      {/* Simple placeholder logo */}
+                      <div className="h-6 w-6 rounded bg-white/10 flex items-center justify-center text-white text-xs font-bold">QR</div>
+                      <div className="text-sm font-semibold tracking-wide">THAI QR PAYMENT</div>
+                    </div>
+                    {/* PromptPay label */}
+                    <div className="px-6 pt-5 flex justify-center">
+                      <div className="inline-flex items-center border-2 border-[#1B4E8F] px-4 py-1 rounded">
+                        <span className="text-[#1B4E8F] text-sm font-semibold mr-2">Prompt</span>
+                        <span className="bg-[#1B4E8F] text-white text-sm font-semibold px-1">Pay</span>
+                        <span className="ml-3 text-[#1B4E8F] text-xs">พร้อมเพย์</span>
+                      </div>
+                    </div>
+                    {/* QR with center logo overlay */}
+                    <div className="px-6 py-5">
+                      <div className="relative mx-auto w-full max-w-[260px] aspect-square bg-white">
+                        <img
+                          src={(() => {
+                            const totalAmount = getDisplayTotal();
+                            const amountParam = Number.isInteger(totalAmount)
+                              ? String(totalAmount)
+                              : String(Number(totalAmount.toFixed(2)));
+                            return `https://rub-tung.vercel.app/api/0990995156?amont=${encodeURIComponent(amountParam)}`;
+                          })()}
+                          alt="Thai QR Payment"
+                          className="absolute inset-0 w-full h-full object-contain select-none"
+                          onError={(e) => {
+                            console.error('Failed to load payment image');
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            toast.error('Unable to load payment image');
+                          }}
+                        />
+                        {/* Center logo overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="h-14 w-14 rounded-md bg-white border-2 border-[#103D5B] flex items-center justify-center shadow-sm">
+                            <div className="h-8 w-8 rounded-md bg-[#19B3A6] flex items-center justify-center text-white text-xs font-bold">PP</div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {order.estimatedTime && (
                 <div className="flex items-center">

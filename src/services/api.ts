@@ -31,6 +31,8 @@ class ApiService {
       notes: orderData.notes as string | null,
       original_total: orderData.original_total as number | string | null,
       discount_amount: orderData.discount_amount as number | string | null,
+      payment_method: orderData.payment_method as string | null,
+      attachment_url: orderData.attachment_url as string | null,
     };
   }
 
