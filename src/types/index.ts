@@ -17,6 +17,8 @@ export interface Order {
   notes?: string | null;
   original_total?: number | string | null;
   discount_amount?: number | string | null;
+  payment_method?: string | null;
+  attachment_url?: string | null;
 }
 
 export interface ApiStatusUpdateResponse {
@@ -37,6 +39,8 @@ export interface ApiStatusUpdateResponse {
     notes?: string | null;
     original_total?: string | number | null;
     discount_amount?: string | number | null;
+    payment_method?: string | null;
+    attachment_url?: string | null;
   };
   message?: string;
 }
