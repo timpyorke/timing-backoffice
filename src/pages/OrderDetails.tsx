@@ -142,6 +142,20 @@ const OrderDetails: React.FC = () => {
 
   const getPaymentMethodLabel = (method?: string | null): string => {
     if (!method) return 'N/A';
+    const normalized = method.toString().toLowerCase().trim();
+    const paymentMethodDisplayMap: Record<string, string> = {
+      qr: 'QR Payment',
+      cash: 'Cash On Delivery'
+    };
+
+    if (normalized === 'null') {
+      return 'N/A';
+    }
+
+    if (normalized in paymentMethodDisplayMap) {
+      return paymentMethodDisplayMap[normalized];
+    }
+
     const formatted = method
       .toString()
       .replace(/[_\-]+/g, ' ')
@@ -638,7 +652,7 @@ const OrderDetails: React.FC = () => {
                 <DollarSign className="h-4 w-4 text-gray-400 mr-3" />
                 <div>
                   <p className="text-sm text-gray-900">Payment Method</p>
-                  <p className="text-sm text-gray-500">{paymentMethodLabel}</p>
+                <p className="text-lg font-semibold text-gray-700">{paymentMethodLabel}</p>
                 </div>
               </div>
 
