@@ -14,6 +14,7 @@ import {
   Home,
   ChevronLeft,
   ChevronRight,
+  Package,
 } from 'lucide-react';
 
 const Layout: React.FC = () => {
@@ -34,6 +35,7 @@ const Layout: React.FC = () => {
     { name: t('nav.dashboard'), href: '/', icon: Home },
     { name: t('nav.orders'), href: '/orders', icon: ShoppingCart },
     { name: t('nav.menu'), href: '/menu', icon: MenuIcon },
+    { name: t('nav.inventory'), href: '/inventory', icon: Package },
     { name: t('nav.sales'), href: '/sales', icon: BarChart3 },
     { name: t('nav.settings'), href: '/settings', icon: Settings },
     { name: t('nav.logout'), href: '/logout', icon: LogOut },
