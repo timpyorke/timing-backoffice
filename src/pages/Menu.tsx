@@ -18,6 +18,52 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getMenuItemName, getMenuItemDescription, getMenuItemCategory } from '@/utils/localization';
 import { formatPrice } from '@/utils/format';
 
+const normalizeMenuItemData = (item: MenuItem): MenuItem => {
+  const basePriceValue = typeof item.base_price === 'number'
+    ? item.base_price
+    : Number(item.base_price) || 0;
+
+  return {
+    ...item,
+    name_en: item.name_en || item.name || '',
+    name_th: item.name_th || item.name || '',
+    description_en: item.description_en ?? item.description ?? '',
+    description_th: item.description_th ?? item.description ?? '',
+    category_en: item.category_en || item.category || '',
+    category_th: item.category_th || item.category || '',
+    name: item.name || item.name_en || item.name_th || '',
+    description: item.description || item.description_en || item.description_th,
+    category: item.category || item.category_en || item.category_th,
+    base_price: basePriceValue,
+  };
+};
+
+const buildMenuUpdatePayload = (item: MenuItem, overrides: Partial<MenuItem> = {}): Partial<MenuItem> => {
+  const normalized = normalizeMenuItemData({ ...item, ...overrides });
+  const payload: Partial<MenuItem> = {
+    name_en: normalized.name_en,
+    name_th: normalized.name_th,
+    description_en: normalized.description_en,
+    description_th: normalized.description_th,
+    category_en: normalized.category_en,
+    category_th: normalized.category_th,
+    base_price: normalized.base_price,
+    active: normalized.active,
+    ...overrides,
+  };
+
+  if (normalized.image_url) {
+    payload.image_url = normalized.image_url;
+    (payload as Record<string, unknown>).image = normalized.image_url;
+  }
+
+  if (normalized.customizations) {
+    payload.customizations = normalized.customizations;
+  }
+
+  return payload;
+};
+
 const Menu: React.FC = () => {
   const { t, language } = useLanguage();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -55,7 +101,7 @@ const Menu: React.FC = () => {
         items = [];
       }
 
-      setMenuItems(items);
+      setMenuItems(items.map(normalizeMenuItemData));
       setApiError(false);
     } catch (error) {
       console.error('Failed to fetch menu items:', error);
@@ -104,12 +150,11 @@ const Menu: React.FC = () => {
 
   const handleToggleAvailability = async (item: MenuItem) => {
     try {
-      const updatedItem = await apiService.updateMenuItem(item.id, {
-        ...item,
-        active: !item.active
-      });
+      const payload = buildMenuUpdatePayload(item, { active: !item.active });
+      const updatedItem = await apiService.updateMenuItem(item.id, payload);
+      const normalizedItem = normalizeMenuItemData({ ...item, ...updatedItem });
       setMenuItems(prev =>
-        prev.map(i => i.id === item.id ? updatedItem : i)
+        prev.map(i => i.id === item.id ? normalizedItem : i)
       );
       toast.success(`${item.name} is now ${!item.active ? t('menu.available') : t('menu.unavailable')}`);
     } catch (error) {
@@ -122,13 +167,15 @@ const Menu: React.FC = () => {
     try {
       if (editingItem) {
         const updatedItem = await apiService.updateMenuItem(editingItem.id, itemData);
+        const normalizedItem = normalizeMenuItemData({ ...editingItem, ...updatedItem });
         setMenuItems(prev =>
-          prev.map(i => i.id === editingItem.id ? updatedItem : i)
+          prev.map(i => i.id === editingItem.id ? normalizedItem : i)
         );
         toast.success(t('common.success'));
       } else {
         const newItem = await apiService.createMenuItem(itemData);
-        setMenuItems(prev => [...prev, newItem]);
+        const normalizedItem = normalizeMenuItemData(newItem);
+        setMenuItems(prev => [...prev, normalizedItem]);
         toast.success(t('common.success'));
       }
       setModalOpen(false);
